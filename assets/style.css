@@ -89,7 +89,7 @@ a:hover { text-decoration: underline; }
 /* ---------- dock ---------- */
 .dock {
   position: fixed; left: 0; right: 0; bottom: 0; height: var(--dock-h); z-index: 20;
-  display: flex; align-items: center; gap: 28px; padding: 0 24px calc(env(safe-area-inset-bottom)) 24px;
+  display: flex; align-items: center; gap: 28px; padding: 0 24px 0 24px;
   background: rgba(255,255,255,.96); border-top: 1px solid var(--border);
 }
 .readout { display: flex; align-items: center; gap: 14px; width: 380px; flex: none; min-width: 0; }
@@ -165,7 +165,7 @@ a:hover { text-decoration: underline; }
   .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
   .chip { white-space: nowrap; }
   .legend { display: none; }
-  .dock { flex-direction: column; align-items: stretch; gap: 6px; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); }
+  .dock { flex-direction: column; align-items: stretch; gap: 6px; padding: 8px 12px 8px; }
   .readout { width: auto; }
   .lvl-hint { white-space: normal; }
   .lvl-num { width: 40px; height: 40px; font-size: 18px; }
