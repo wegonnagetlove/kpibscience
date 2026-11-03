@@ -499,7 +499,8 @@
       "</dl>" +
       "<h3>Работы по годам</h3>" + histogram(list) +
       (photos.length ? "<h3>Галерея</h3><div class=\"gallery\">" + photos.map(function (ph) {
-        return '<figure><img src="' + esc(ph.src) + '" alt="' + esc(ph.caption) + '" loading="lazy"><figcaption>' + esc(ph.caption) + "</figcaption></figure>";
+        return '<figure><a href="' + esc(ph.src) + '" target="_blank" rel="noopener"><img src="' + esc(ph.src) + '" alt="' + esc(ph.caption) + '" loading="lazy"></a><figcaption>' + esc(ph.caption) +
+          (ph.work ? ' <a href="#' + esc(ph.work) + '">рис. ' + ph.fig + "</a>" : "") + "</figcaption></figure>";
       }).join("") + '</div><p class="plain" style="color:var(--dim);margin-top:8px">' + esc(D.photoCredit || "") + "</p>" : "") +
       "<h3>Работы</h3><div class=\"list\">" + shown.map(workRow).join("") + "</div>" +
       (shown.length < list.length ? '<button class="more" type="button" data-allorbit="' + o.L.level + '">Показать все ' + list.length + "</button>" : "");

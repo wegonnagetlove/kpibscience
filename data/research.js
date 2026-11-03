@@ -21,13 +21,23 @@ window.KPIB = {
   },
 
   // Фото фона карты: какой снимок показывать на каких уровнях
-  photoCredit: "Фотографии с орбиты: из архива Ю.М. Батурина.",
+  photoCredit: "Фотографии с орбиты: Ю.М. Батурин, съемка на пленку, 1998 и 2001. Часть снимков воспроизведена по статье: Батурин, Ю.М. Философия природы в космических фотографиях / Ю.М. Батурин. — Текст : электронный // Журнал Российского национального комитета по истории и философии науки и техники. — 2025. — Т. 3, вып. 1. — С. 194-204. — DOI 10.62139/2949-608X-2025-3-1-194-204.",
   PHOTOS: [
     { src: "assets/img/clouds.jpg",   levels: [15], caption: "Облачные поля над океаном и манипулятор станции" },
     { src: "assets/img/vortices.jpg", levels: [15], caption: "Вихревая дорожка в облаках" },
     { src: "assets/img/panel.jpg",    levels: [16], caption: "Солнечная батарея над океаном" },
     { src: "assets/img/horizon.jpg",  levels: [15, 16], caption: "Земной горизонт в иллюминаторе" },
-    { src: "assets/img/station.jpg",  levels: [16, 17], caption: "Солнечные батареи орбитальной станции" }
+    { src: "assets/img/station.jpg",  levels: [16, 17], caption: "Солнечные батареи орбитальной станции" },
+    { src: "assets/img/manicouagan.jpg",   levels: [15], caption: "Канада. Ударный кратер Маникуаган диаметром около 100 км. 1998", work: "a809323820", fig: 2 },
+    { src: "assets/img/double-spiral.jpg", levels: [15], caption: "Двойная спираль. 1998", work: "a809323820", fig: 3 },
+    { src: "assets/img/himalaya.jpg",      levels: [15], caption: "Гималаи в снегу как еловый лапник (фрактальная структура). 2001", work: "a809323820", fig: 4 },
+    { src: "assets/img/libya-dunes.jpg",   levels: [15], caption: "Песчаные волны в Ливийской пустыне. 2001", work: "a809323820", fig: 5 },
+    { src: "assets/img/libya-oases.jpg",   levels: [15], caption: "Оазисы в Ливийской пустыне. 2001", work: "a809323820", fig: 6 },
+    { src: "assets/img/impressionism.jpg", levels: [15], caption: "Космический импрессионизм. 2001", work: "a809323820", fig: 10 },
+    { src: "assets/img/green-ray.jpg",     levels: [16], caption: "Зеленый закатный луч. 2001", work: "a809323820", fig: 7 },
+    { src: "assets/img/space-dawn.jpg",    levels: [16], caption: "Космический рассвет. 1998", work: "a809323820", fig: 8 },
+    { src: "assets/img/day-night.jpg",     levels: [16], caption: "День и ночь. 2001", work: "a809323820", fig: 9 },
+    { src: "assets/img/three-worlds.jpg",  levels: [16, 17], caption: "Три мира (подражание Эшеру). 1998", work: "a809323820", fig: 11 }
   ],
 
   LEVELS: [
