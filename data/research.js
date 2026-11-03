@@ -92,18 +92,18 @@ window.KPIB = {
 
   // Работы, которых нет в ИСТИНА. Основной массив работ: data/works.js (выгрузка из ИСТИНА МГУ).
   WORKS: [
-    { id: "b-sapronov", authors: ["baturin"], type: "supervision", level: -3,
+    { id: "b-sapronov", authors: ["baturin"], type: "supervision", level: -3, topics: ["pd", "infolaw"],
       title: "Обработка персональных данных в Российской Федерации: информационно-правовой аспект (диссертация Д.Ю. Сапронова, научный руководитель Ю.М. Батурин)",
       gost: "Сведения о научном руководителе диссертации Сапронова Дмитрия Юрьевича «Обработка персональных данных в Российской Федерации : информационно-правовой аспект». — Текст : электронный // Диссертационные советы МГУ : [сайт]. — URL: https://dissovet.msu.ru/file/dissovet-docs/eb496304-84e1-11f1-9bf7-005056b96f20 (дата обращения: 01.11.2026).",
       source: "dsBaturin" },
 
-    { id: "f-digital-ruble", authors: ["frolov"], year: 2023, type: "talk", level: 1,
+    { id: "f-digital-ruble", authors: ["frolov"], year: 2023, type: "talk", level: 1, topics: ["audit", "digecon"],
       title: "Проблемы государственного аудита безопасности обращения цифрового рубля",
       gost: "Фролов, Д.Б. Проблемы государственного аудита безопасности обращения цифрового рубля : доклад / Д.Б. Фролов. — Текст : электронный // Программа научной конференции Высшей школы государственного аудита МГУ имени М.В. Ломоносова. — Москва, 2023. — URL: https://istina.pskgu.ru/download/618936398/1ujHIh:VTCDFoexZhlc3avl9VtoCa-DPJsyLqg3FWNqUqH3w10/ (дата обращения: 01.11.2026).",
       source: "confProgram2023",
       verify: "Название конференции в доступном фрагменте программы не приведено. Уточнить." },
 
-    { id: "zk-neural", authors: ["zueva", "kalkanov"], type: "event", level: -1,
+    { id: "zk-neural", authors: ["zueva", "kalkanov"], type: "event", level: -1, topics: ["ai", "edu"],
       title: "Подсекция «Нейронные сети в научной работе студента»",
       gost: "Подсекция «Нейронные сети в научной работе студента». — Текст : электронный // Высшая школа государственного аудита МГУ имени М.В. Ломоносова : официальный сайт. — URL: https://audit.msu.ru/vshga_news/podsektsiya-nejronnye-seti-v-nauchnoj-rabote-studenta/ (дата обращения: 01.11.2026).",
       source: "vshgaNeural" }

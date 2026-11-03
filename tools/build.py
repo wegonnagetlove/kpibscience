@@ -174,6 +174,32 @@ def level_of(text):
     return 2
 
 
+TOPICS = [
+  ("space",   "Космонавтика и космическое право", "#b78ce0", r"космо|космич|орбит|ракет|спутник|гагарин|космонавт|астронав|\bмкс\b|салют|\bмир\b|луну|аполлон|space|astronaut|rocket|lunar|salyut"),
+  ("ai",      "Искусственный интеллект и алгоритмы", "#e0b34a", r"искусственн\w* интеллект|\bии\b|ии[‑-]|нейро|алгоритм|робот|machine learning|artificial|\bai\b|нейросет|генератив|chatgpt|кибернетич"),
+  ("pd",      "Персональные данные и тайна", "#f08a8a", r"персональн\w* данн|тайн|конфиденциальн|приватн|privacy|личн\w* жизн"),
+  ("mib",     "Международная информационная безопасность", "#7fcadb", r"международн\w* информационн\w* безопасн|международн\w* прав|киберпространств|суверенитет|икт[‑-]сред|\bоон\b|\bшос\b|international information security|кибервойн"),
+  ("ib",      "Информационная безопасность и киберугрозы", "#5f84e0", r"информационн\w* безопасн|кибер|компьютерн\w* преступ|защит\w* информац|критическ\w* информационн|угроз|security|cyber|фейк|недостоверн"),
+  ("audit",   "Государственный аудит и финансовый контроль", "#e8743b", r"аудит|финансов\w* контрол|контроллинг|смарт-контрол|счетн\w* палат|казначейств|комплаенс|государственн\w* контрол"),
+  ("econsec", "Экономическая безопасность и правоохрана", "#d4573f", r"экономическ\w* безопасн|мошенничеств|легализац|контрабанд|правоохранит|преступн|теневой|теневая|офшор|отток капитал"),
+  ("migr",    "Миграция и демография", "#9bc46a", r"миграц|мигрант|демограф|населени|старени|иммиграц"),
+  ("digecon", "Экономика, цифровая экономика и финансы", "#cfa57a", r"экономик|экономическ\w* теори|economy|ekonom|безработиц|задолженност|туризм|e-commerce|облачн|энерг|energy|капитал|цифров\w* экономик|цифров\w* рубл|крипто|финанс|банк|налог|бюджет|ценн\w* бумаг|краудфанд|рынок|рынк|платформ|инвестиц|economic|financial|banking|market"),
+  ("media",   "СМИ, гласность и цензура", "#e6a0c8", r"\bсми\b|массов\w* информац|гласност|glasnost|цензур|журналист|медиа|пресс|press|omnimedia|омнимедиа|телевиден|книг|кинорецензи"),
+  ("edu",     "Образование и подготовка кадров", "#8fd3b0", r"образован|обучен|учебн|магистер|студент|аспирант|кафедр|университет|подготовк\w* кадр|профессиональн\w* компетенц|proctoring"),
+  ("infolaw", "Информационное и компьютерное право", "#a3acb8", r"информационн\w* прав|компьютерн\w* прав|правов\w* информати|правов\w* информац|свод\w* закон|регистр|мониторинг\w* правопримен|электронн\w* документ|электронн\w* подпис|интернет|документ|цифров\w* прав|computer law|телекоммуникац|компьютер|эвм|вычислительн|изобретен|digital humanities"),
+  ("const",   "Конституция, государство и власть", "#e9d391", r"конституц|союзн\w* договор|ссср|рсфср|президент|ельцин|государственност|государственн\w* управлен|политик|власт|закон|законодат|бюрократ|lawmaking|lawyers|юрист|уголовн|политическ|political|ново-огарев|novo-ogarevo|soviet|urss"),
+  ("culture", "Литература, искусство и культура", "#f2c27b", r"кэрролл|литератур|искусств|поэз|гамлет|музе|эссе|баллада|роман|фотограф"),
+  ("vr",      "Виртуальные среды, 3D и цифровая Земля", "#6fd6c4", r"виртуальн|3d|3-d|цифров\w* земл|digital earth|ситуационн\w* (центр|анализ)|информационно-аналитическ|laser scanning|lightcraft|impulsar|моделировани|virtual"),
+  ("intl",    "Международные отношения и мировая политика", "#9fb4ff", r"международн\w* отношен|миропоряд|европейск|гренланд|дипломат|турци|кеннан|kennan|америк|переговор|глобализац|китай|china|world order"),
+  ("science", "История и философия науки", "#c7b8ff", r"рефлексивн|шухов|инженер|наук[аиуе]\b|наукой|истори|академи\w* наук|наукометр|науки и техники|научн\w* мысл|наук\w* и техник|естествозн|иивт|ииет|физик|математ|вернадск|междисциплин|философ|эконофизик|бифуркац|турбулентн|учен\w*\b"),
+]
+
+
+def topics_of(text):
+    t = text.lower().replace("ё", "е")
+    return [tid for tid, name, color, rx in TOPICS if re.search(rx, t)]
+
+
 # ---------- сбор ----------
 works = {}
 order = []
@@ -287,6 +313,8 @@ for k, v in ft.get("openalex", {}).items():
 for k in ft.get("istina_files", {}):
     if k in works:
         works[k]["istinaFile"] = True
+for w in works.values():
+    w["topics"] = topics_of(w["title"] + " " + (w.get("venue") or "")) or ["other"]
 out = [works[k] for k in order]
 from collections import Counter
 print("works", len(out))
@@ -294,8 +322,13 @@ print("levels", sorted(Counter(w["level"] for w in out).items()))
 print("types", Counter(w["type"] for w in out))
 print("with direct links", sum(1 for w in out if w["links"]), "doi", sum(1 for w in out if any(l["kind"].startswith("doi") for l in w["links"])))
 print("multi-author dept", sum(1 for w in out if len(w["authors"]) > 1))
+from collections import Counter as _C
+print("topics", sorted(_C(t for w in out for t in w["topics"]).items(), key=lambda x: -x[1]))
+print("primary", sorted(_C(w["topics"][0] for w in out).items(), key=lambda x: -x[1]))
 print("pdf", sum(1 for w in out if any(l["kind"] == "pdf" for l in w["links"])), "istina files", sum(1 for w in out if w.get("istinaFile")))
 with open(os.path.join(HERE, "..", "data", "works.js"), "w", encoding="utf-8") as fh:
     fh.write("/* Выгрузка из ИСТИНА МГУ, собрана tools/build.py. Не править вручную. */\nwindow.KPIB_ISTINA = ")
     fh.write(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
+    fh.write(";\nwindow.KPIB_TOPICS = ")
+    fh.write(json.dumps([{"id": t[0], "name": t[1], "color": t[2]} for t in TOPICS] + [{"id": "other", "name": "Прочие темы", "color": "#8a9099"}], ensure_ascii=False))
     fh.write(";\n")

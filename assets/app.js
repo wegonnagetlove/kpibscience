@@ -19,9 +19,14 @@
   var TYPE_GROUPS = [["article", "Статьи в журналах"], ["chapter", "Статьи в сборниках"], ["book", "Монографии, книги"],
                      ["thesis", "Диссертации и руководство", ["supervision"]], ["talk", "Тезисы, доклады, мероприятия", ["event"]]];
 
+  var TOPICS = window.KPIB_TOPICS || [];
+  var topicOf = {};
+  TOPICS.forEach(function (t) { topicOf[t.id] = t; });
+  var AUTHOR_COLORS = { baturin: "#e0b34a", morozov: "#6f95ec", streltsov: "#7fcadb", zueva: "#e8743b", frolov: "#9bc46a", kalkanov: "#e6a0c8" };
+  var TYPE_COLORS = { article: "#dee2e6", chapter: "#8a9099", book: "#e0b34a", thesis: "#f08a8a", talk: "#7fcadb" };
   var WORKS = D.WORKS.concat((window.KPIB_ISTINA || []).map(function (w) { w.source = "istina"; return w; }));
   var byId = {};
-  WORKS.forEach(function (w) { byId[w.id] = w; });
+  WORKS.forEach(function (w) { byId[w.id] = w; if (!w.topics || !w.topics.length) w.topics = ["other"]; });
   var people = {};
   D.PEOPLE.forEach(function (p) { people[p.id] = p; });
   var years = WORKS.map(function (w) { return w.year; }).filter(Boolean);
@@ -44,12 +49,12 @@
     return c;
   }
   function works(n) { return n + " " + plural(n, "работа", "работы", "работ"); }
-  WORKS.forEach(function (w) { w._q = norm(w.title + " " + (w.venue || "") + " " + (w.year || "") + " " + shortAuthors(w)); });
+  WORKS.forEach(function (w) { w._q = norm(w.title + " " + (w.venue || "") + " " + (w.year || "") + " " + shortAuthors(w) + " " + w.topics.map(function (t) { return topicOf[t] ? topicOf[t].name : ""; }).join(" ")); });
   function rng(seed) { return function () { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; }
   function hexA(hex, a) { var n = parseInt(hex.slice(1), 16); return "rgba(" + (n >> 16) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")"; }
 
   /* ---------- фильтры ---------- */
-  var offPeople = {}, offTypes = {}, onlyPdf = false;
+  var offPeople = {}, offTypes = {}, offTopics = {}, onlyPdf = false, focusTopic = null, colorMode = "orbit";
   function pdfOf(w) { return (w.links || []).filter(function (l) { return l.kind === "pdf"; })[0]; }
   function typeGroup(t) {
     for (var i = 0; i < TYPE_GROUPS.length; i++) {
@@ -60,6 +65,8 @@
   }
   function passes(w) {
     if (onlyPdf && !pdfOf(w)) return false;
+    if (focusTopic && w.topics.indexOf(focusTopic) < 0) return false;
+    if (Object.keys(offTopics).length && !w.topics.some(function (t) { return !offTopics[t]; })) return false;
     if (offTypes[typeGroup(w.type)]) return false;
     if (Object.keys(offPeople).length && !w.authors.some(function (id) { return !offPeople[id]; })) return false;
     return true;
@@ -223,10 +230,10 @@
       if (p[0] < -20 || p[0] > W + 20 || p[1] < -20 || p[1] > H + 20) { b.sx = -999; return; }
       b.sx = p[0]; b.sy = p[1];
       var ok = passes(b.w);
-      var r = Math.max(1, TYPES[b.w.type].r * zoomK * 0.75);
+      var r = Math.max(1, TYPES[b.w.type].r * zoomK * 0.75) * (focusTopic && ok ? 1.7 : 1);
       var fresh = b.born ? Math.max(0, 1 - (performance.now() - b.born) / 1400) : 0;
       ctx.globalAlpha = ok ? 0.95 : 0.12;
-      ctx.fillStyle = b.w.type === "thesis" || b.w.type === "supervision" ? "#ffffff" : hexA(b.o.color, 1);
+      ctx.fillStyle = bodyColor(b);
       ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, Math.PI * 2); ctx.fill();
       if (b.w.type === "thesis") { ctx.strokeStyle = b.o.color; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(p[0], p[1], r + 2.5, 0, Math.PI * 2); ctx.stroke(); }
       if (fresh > 0) { ctx.globalAlpha = fresh; ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(p[0], p[1], r + 10 * (1 - fresh) + 2, 0, Math.PI * 2); ctx.stroke(); }
@@ -273,6 +280,7 @@
     if (hover && hover.kind === "work" && hover.b.sx > -999 && (!sel || sel.b !== hover.b)) {
       tag(cut(hover.b.w.title, 60), hover.b.sx, hover.b.sy, "#dee2e6", { force: true });
     }
+    drawLegend();
     if (showWorks) {
       var n = 0;
       for (var i = 0; i < bodies.length && n < Math.round(20 + cam.s * 8); i++) {
@@ -283,7 +291,30 @@
       }
     }
   }
+  function bodyColor(b) {
+    var w = b.w;
+    if (colorMode === "topic") return (topicOf[focusTopic && w.topics.indexOf(focusTopic) >= 0 ? focusTopic : w.topics[0]] || {}).color || "#8a9099";
+    if (colorMode === "author") return AUTHOR_COLORS[w.authors[0]] || "#dee2e6";
+    if (colorMode === "type") return TYPE_COLORS[typeGroup(w.type)] || "#dee2e6";
+    return w.type === "thesis" || w.type === "supervision" ? "#ffffff" : b.o.color;
+  }
   function cut(s, n) { return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+  function drawLegend() {
+    var items = [];
+    if (colorMode === "topic") items = TOPICS.filter(function (t) { return !focusTopic || t.id === focusTopic; }).map(function (t) { return [t.color, t.name]; });
+    else if (colorMode === "author") items = D.PEOPLE.map(function (p) { return [AUTHOR_COLORS[p.id], p.short]; });
+    else if (colorMode === "type") items = TYPE_GROUPS.map(function (g) { return [TYPE_COLORS[g[0]], g[1]]; });
+    else return;
+    ctx.font = "500 12px Jura, 'Segoe UI', Arial, sans-serif"; ctx.textAlign = "left";
+    var x = W - panelW() - 16, y = H - 18 - items.length * 17;
+    var wmax = 0; items.forEach(function (it) { wmax = Math.max(wmax, ctx.measureText(it[1]).width); });
+    x -= wmax + 18;
+    ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(x - 8, y - 14, wmax + 34, items.length * 17 + 10);
+    items.forEach(function (it, i) {
+      ctx.fillStyle = it[0]; ctx.beginPath(); ctx.arc(x + 4, y + i * 17 - 4, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#dee2e6"; ctx.fillText(it[1], x + 14, y + i * 17);
+    });
+  }
   function planetPos(o) { return orbitPoint(o, o.p0 + o.speed * t * 0.6); }
   function edgeMark(o, p) {
     var c = viewCenter(), dx = p[0] - c[0], dy = p[1] - c[1];
@@ -331,7 +362,7 @@
 
   function updateCount() {
     var n = WORKS.filter(function (w) { return visibleNow(w) && passes(w); }).length;
-    $("#count").textContent = works(n) + " · 9 орбит";
+    $("#count").textContent = works(n) + " · 9 орбит" + (focusTopic ? " · тема: " + cut(topicOf[focusTopic].name, 28) : " · " + TOPICS.length + " тем");
   }
 
   /* ================= ВЫБОР ================= */
@@ -359,7 +390,10 @@
     follow = null;
     setHash("kafedra");
   }
-  function deselect() { sel = null; follow = null; closePanel(); }
+  function deselect() {
+    if (sel && sel.kind === "topic" && focusTopic) { focusTopic = null; colorMode = "orbit"; updateCount(); }
+    sel = null; follow = null; closePanel();
+  }
   function setHash(h) { try { history.replaceState(null, "", "#" + h); } catch (e) {} }
 
   /* ================= ПАНЕЛЬ ================= */
@@ -383,6 +417,10 @@
   }
   function orbitPill(o) {
     return '<a class="pill" data-orbit="' + o.L.level + '"><i style="background:' + o.color + '"></i>' + lnum(o.L.level) + " · " + esc(o.L.name) + "</a>";
+  }
+  function topicPill(id, n) {
+    var t = topicOf[id]; if (!t) return "";
+    return '<a class="pill" data-topic="' + t.id + '"><i style="background:' + t.color + '"></i>' + esc(t.name) + (n != null ? " · " + n : "") + "</a>";
   }
   function workRow(w) {
     return '<div class="li" data-work="' + esc(w.id) + '"><div class="ly">' + esc(w.year || "") + '</div><div><div class="lt">' + esc(w.title) +
@@ -427,6 +465,7 @@
       (w.coauthors ? "<dt>соавторы</dt><dd>" + esc(w.coauthors) + "</dd>" : "") +
       (w.venue ? "<dt>издание</dt><dd>" + esc(w.venue) + "</dd>" : "") +
       "<dt>орбита</dt><dd>" + orbitPill(o) + "</dd>" +
+      "<dt>темы</dt><dd>" + w.topics.map(function (t) { return topicPill(t); }).join("") + "</dd>" +
       "<dt>объект исследования</dt><dd>" + esc(o.L.hint) + "</dd>" +
       "<dt>источники</dt><dd>" + (links || "нет") + "</dd>" +
       "</dl>" +
@@ -453,6 +492,7 @@
         .map(function (a) { return '<span class="pill">' + esc(people[a].short) + " · " + byAuthor[a] + "</span>"; }).join("") + "</dd>" +
       "<dt>виды работ</dt><dd>" + TYPE_GROUPS.filter(function (g) { return byType[g[0]]; })
         .map(function (g) { return '<span class="pill">' + esc(g[1]) + " · " + byType[g[0]] + "</span>"; }).join("") + "</dd>" +
+      "<dt>темы</dt><dd>" + topicCounts(list).slice(0, 8).map(function (x) { return topicPill(x[0], x[1]); }).join("") + "</dd>" +
       "<dt>соседние орбиты</dt><dd>" + orbits.filter(function (x) { return Math.abs(x.i - o.i) === 1; }).map(orbitPill).join("") + "</dd>" +
       "</dl>" +
       "<h3>Работы по годам</h3>" + histogram(list) +
@@ -463,6 +503,44 @@
       (shown.length < list.length ? '<button class="more" type="button" data-allorbit="' + o.L.level + '">Показать все ' + list.length + "</button>" : "");
   }
 
+  function topicCounts(list) {
+    var c = {};
+    list.forEach(function (w) { w.topics.forEach(function (t) { c[t] = (c[t] || 0) + 1; }); });
+    return Object.keys(c).map(function (k) { return [k, c[k]]; }).sort(function (a, b) { return b[1] - a[1]; });
+  }
+  function renderTopic(id, all) {
+    var t = topicOf[id];
+    var list = WORKS.filter(function (w) { return w.topics.indexOf(id) >= 0; }).sort(function (a, b) { return (b.year || 0) - (a.year || 0); });
+    var byAuthor = {}, byOrbit = {};
+    list.forEach(function (w) { w.authors.forEach(function (a) { byAuthor[a] = (byAuthor[a] || 0) + 1; }); byOrbit[w.level] = (byOrbit[w.level] || 0) + 1; });
+    var ys = list.map(function (w) { return w.year; }).filter(Boolean);
+    var shown = all ? list : list.slice(0, 30);
+    var related = {};
+    list.forEach(function (w) { w.topics.forEach(function (x) { if (x !== id) related[x] = (related[x] || 0) + 1; }); });
+    return head(t.name, "тема") +
+      '<div class="read"><button class="read-btn" type="button" data-unfocus="1">' + (focusTopic === id ? "Показать все темы" : "Подсветить на карте") + "</button></div>" +
+      "<h3>Ключевые сведения</h3><dl class=\"facts\">" +
+      "<dt>работ по теме</dt><dd>" + list.length + "</dd>" +
+      (ys.length ? "<dt>годы</dt><dd>" + Math.min.apply(null, ys) + "–" + Math.max.apply(null, ys) + "</dd>" : "") +
+      "<dt>авторы</dt><dd>" + Object.keys(byAuthor).sort(function (a, b) { return byAuthor[b] - byAuthor[a]; })
+        .map(function (a) { return '<span class="pill">' + esc(people[a].short) + " · " + byAuthor[a] + "</span>"; }).join("") + "</dd>" +
+      "<dt>на орбитах</dt><dd>" + orbits.filter(function (o) { return byOrbit[o.L.level]; })
+        .map(function (o) { return orbitPill(o).replace("</a>", " · " + byOrbit[o.L.level] + "</a>"); }).join("") + "</dd>" +
+      "<dt>смежные темы</dt><dd>" + Object.keys(related).sort(function (a, b) { return related[b] - related[a]; }).slice(0, 6)
+        .map(function (x) { return topicPill(x, related[x]); }).join("") + "</dd>" +
+      "</dl>" +
+      "<h3>Работы по годам</h3>" + histogram(list) +
+      "<h3>Работы</h3><div class=\"list\">" + shown.map(workRow).join("") + "</div>" +
+      (shown.length < list.length ? '<button class="more" type="button" data-alltopic="' + id + '">Показать все ' + list.length + "</button>" : "");
+  }
+  function selectTopic(id, focus) {
+    sel = { kind: "topic", id: id };
+    if (focus !== false) { focusTopic = id; colorMode = "topic"; }
+    openPanel(renderTopic(id), topicOf[id].color);
+    follow = null; camTarget = { x: 0, y: 0, s: fitScale() };
+    updateCount();
+    setHash("topic-" + id);
+  }
   function renderSun() {
     var staff = D.PEOPLE.map(function (p) {
       var n = WORKS.filter(function (w) { return w.authors.indexOf(p.id) >= 0; }).length;
@@ -473,11 +551,21 @@
       '<p class="plain" style="margin-top:16px">' + esc(D.department.name) + ". " + esc(D.department.faculty) + ", " + esc(D.department.university) + ".</p>" +
       "<h3>Сотрудники</h3><dl class=\"facts\">" + staff + "</dl>" +
       "<h3>Орбиты</h3><div>" + orbits.map(function (o) { return orbitPill(o).replace("</a>", " · " + o.works.length + "</a>"); }).join("") + "</div>" +
+      "<h3>Темы</h3><div>" + topicCounts(WORKS).map(function (x) { return topicPill(x[0], x[1]); }).join("") + "</div>" +
       "<h3>Все работы по годам</h3>" + histogram(WORKS) +
       '<p class="plain" style="margin-top:14px"><a class="pill" href="' + esc(D.department.url) + '" target="_blank" rel="noopener">Страница кафедры ↗</a></p>';
   }
 
   panel.addEventListener("click", function (e) {
+    var tp = e.target.closest("[data-topic]");
+    if (tp) { e.preventDefault(); selectTopic(tp.dataset.topic); return; }
+    var uf = e.target.closest("[data-unfocus]");
+    if (uf && sel && sel.kind === "topic") {
+      if (focusTopic === sel.id) { focusTopic = null; colorMode = "orbit"; } else { focusTopic = sel.id; colorMode = "topic"; }
+      $("#panelBody").innerHTML = renderTopic(sel.id); updateCount(); return;
+    }
+    var at = e.target.closest("[data-alltopic]");
+    if (at) { $("#panelBody").innerHTML = renderTopic(at.dataset.alltopic, true); return; }
     var a = e.target.closest("[data-orbit]");
     if (a) { e.preventDefault(); selectOrbit(orbitOf[a.dataset.orbit]); return; }
     var r = e.target.closest("[data-work]");
@@ -520,6 +608,8 @@
     var s = norm(v.trim()), html = "";
     var os = orbits.filter(function (o) { return !s || norm(o.L.name + " " + o.L.hint).indexOf(s) >= 0; });
     if (os.length) html += '<div class="res-h">Орбиты</div><div>' + os.map(orbitPill).join("") + "</div>";
+    var ts = TOPICS.filter(function (t) { return !s || norm(t.name).indexOf(s) >= 0; });
+    if (ts.length) html += '<div class="res-h">Темы</div><div>' + ts.map(function (t) { return topicPill(t.id, WORKS.filter(function (w) { return w.topics.indexOf(t.id) >= 0; }).length); }).join("") + "</div>";
     if (s) {
       var ws = WORKS.filter(function (w) { return w._q.indexOf(s) >= 0; });
       html += '<div class="res-h">Работы: ' + ws.length + "</div><div class=\"list\">" + ws.slice(0, 80).map(workRow).join("") + "</div>";
@@ -528,6 +618,8 @@
     $("#res").innerHTML = html;
   }
   modal.addEventListener("click", function (e) {
+    var tp = e.target.closest("[data-topic]");
+    if (tp) { e.preventDefault(); closeModal(); selectTopic(tp.dataset.topic); return; }
     var a = e.target.closest("[data-orbit]");
     if (a) { e.preventDefault(); closeModal(); selectOrbit(orbitOf[a.dataset.orbit]); return; }
     var r = e.target.closest("[data-work]");
@@ -545,14 +637,32 @@
       return '<label class="chk"><input type="checkbox" data-t="' + g[0] + '"' + (offTypes[g[0]] ? "" : " checked") + "> " + esc(g[1]) + "<small>" + n + "</small></label>";
     }).join("");
     var npdf = WORKS.filter(pdfOf).length;
+    var modes = [["orbit", "по орбитам"], ["topic", "по темам"], ["author", "по авторам"], ["type", "по видам работ"]].map(function (m) {
+      return '<label class="chk"><input type="radio" name="cm" data-cm="' + m[0] + '"' + (colorMode === m[0] ? " checked" : "") + "> " + m[1] + "</label>";
+    }).join("");
+    var tpc = TOPICS.map(function (t) {
+      var n = WORKS.filter(function (w) { return w.topics.indexOf(t.id) >= 0; }).length;
+      return '<label class="chk"><input type="checkbox" data-tp="' + t.id + '"' + (offTopics[t.id] ? "" : " checked") + '> <i style="background:' + t.color + '"></i>' + esc(t.name) + "<small>" + n + "</small></label>";
+    }).join("");
     openModal("filter", head("Фильтры", "что показывать на орбитах") +
       '<div class="res-h">Полный текст</div><label class="chk"><input type="checkbox" data-pdf="1"' + (onlyPdf ? " checked" : "") + "> Только работы с открытым PDF<small>" + npdf + "</small></label>" +
-      '<div class="res-h">Авторы</div>' + ppl + '<div class="res-h">Виды работ</div>' + tps);
+      '<div class="res-h">Раскраска тел</div>' + modes +
+      '<div class="res-h">Авторы</div>' + ppl + '<div class="res-h">Виды работ</div>' + tps +
+      '<div class="res-h">Темы <a href="#" data-alltp="1" style="margin-left:10px">все</a> <a href="#" data-notp="1" style="margin-left:6px">ни одной</a></div>' + tpc);
+    $("#modalBody").addEventListener("click", function (e) {
+      var a = e.target.closest("[data-alltp],[data-notp]"); if (!a) return;
+      e.preventDefault();
+      TOPICS.forEach(function (t) { if (a.dataset.alltp) delete offTopics[t.id]; else offTopics[t.id] = true; });
+      Array.prototype.forEach.call(document.querySelectorAll("[data-tp]"), function (i) { i.checked = !!a.dataset.alltp; });
+      updateCount();
+    });
     $("#modalBody").addEventListener("change", function (e) {
       var i = e.target;
       if (i.dataset.p) { if (i.checked) delete offPeople[i.dataset.p]; else offPeople[i.dataset.p] = true; }
       if (i.dataset.t) { if (i.checked) delete offTypes[i.dataset.t]; else offTypes[i.dataset.t] = true; }
       if (i.dataset.pdf) onlyPdf = i.checked;
+      if (i.dataset.cm) colorMode = i.dataset.cm;
+      if (i.dataset.tp) { if (i.checked) delete offTopics[i.dataset.tp]; else offTopics[i.dataset.tp] = true; }
       updateCount();
     });
   }
@@ -569,7 +679,8 @@
       '<p class="plain" style="margin-top:16px">Атлас научных работ сотрудников кафедры компьютерного права и информационной безопасности Высшей школы государственного аудита МГУ имени М.В. Ломоносова. В центре системы кафедра. Девять орбит соответствуют масштабу объекта исследования: чем крупнее объект, тем дальше орбита, от единицы данных до космоса. Каждое тело на орбите означает одну работу; крупные тела с кольцом означают диссертации.</p>' +
       '<p class="plain">Карту можно перетаскивать и приближать колесом мыши или двумя пальцами. Нажатие на тело или на название орбиты открывает карточку. Кнопки внизу слева проигрывают историю: работы появляются на орбитах в год публикации.</p>' +
       "<h3>Орбиты</h3><div>" + orbits.map(function (o) { return orbitPill(o); }).join("") + "</div>" +
-      '<p class="plain" style="color:var(--dim)">Орбита присвоена работе автоматически по ключевым словам заглавия; работы без признаков другого уровня отнесены к орбите «Государство». Это навигационная классификация, а не оценка работы.</p>' +
+      "<h3>Темы</h3><div>" + TOPICS.map(function (t) { return topicPill(t.id); }).join("") + "</div>" +
+      '<p class="plain" style="color:var(--dim)">Темы и орбиты присвоены работам автоматически по ключевым словам заглавия и издания; у работы может быть несколько тем. Орбита присвоена работе автоматически по ключевым словам заглавия; работы без признаков другого уровня отнесены к орбите «Государство». Это навигационная классификация, а не оценка работы.</p>' +
       "<h3>Источники</h3>" +
       '<p class="plain">Списки работ выгружены из системы ИСТИНА МГУ по профилям сотрудников ' + esc(D.checkedAt) + '. Библиографические записи построены по ГОСТ Р 7.0.100-2018 из экспорта BibTeX каждой записи ИСТИНА. Ссылки DOI даны там, где они указаны в ИСТИНА или найдены по совпадению заглавия, года и издания в Crossref: ' + withDoi + " из " + WORKS.length + ".</p>" +
       '<ol class="src"><li>Кафедра компьютерного права и информационной безопасности. — Текст : электронный // Высшая школа государственного аудита МГУ имени М.В. Ломоносова : официальный сайт. — URL: <a href="' + esc(D.department.url) + '" target="_blank" rel="noopener">' + esc(D.department.url) + "</a> (дата обращения: " + esc(D.checkedAt) + ").</li>" + srcs + "</ol>" +
@@ -720,12 +831,14 @@
     if (byId[hsh]) { var b0 = bodyOf[hsh]; var q0 = orbitPoint(b0.o, b0.th, b0.k); cam.x = q0[0]; cam.y = q0[1]; cam.s = 3.2; selectWork(byId[hsh], false); }
     else if (/^orbit-\d$/.test(hsh)) { var o0 = orbits[+hsh.slice(6) - 1]; if (o0) selectOrbit(o0); }
     else if (hsh === "kafedra") selectSun();
+    else if (/^topic-/.test(hsh) && topicOf[hsh.slice(6)]) selectTopic(hsh.slice(6));
   }
   window.addEventListener("hashchange", function () {
     var h = decodeURIComponent(location.hash.slice(1));
     if (byId[h]) selectWork(byId[h]);
     else if (/^orbit-\d$/.test(h) && orbits[+h.slice(6) - 1]) selectOrbit(orbits[+h.slice(6) - 1]);
     else if (h === "kafedra") selectSun();
+    else if (/^topic-/.test(h) && topicOf[h.slice(6)]) selectTopic(h.slice(6));
   });
   requestAnimationFrame(function (n) { last = n; frame(n); });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () {});
