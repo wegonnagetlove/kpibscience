@@ -77,7 +77,10 @@ window.KPIB = {
       profile: "https://istina.msu.ru/workers/3172534/" },
     { id: "kalkanov",  name: "Калканов Сергей Сергеевич",   short: "С.С. Калканов",
       role: "ассистент",
-      profile: "https://istina.msu.ru/workers/254624562/" }
+      profile: "https://istina.msu.ru/workers/254624562/" },
+    { id: "sapronov",  name: "Сапронов Дмитрий Юрьевич",   short: "Д.Ю. Сапронов",
+      role: "кандидат юридических наук; ведущий научный сотрудник Центра стратегических исследований МГУ (по совместительству)",
+      profile: "https://istina.msu.ru/workers/324211318/" }
   ],
 
   SOURCES: {

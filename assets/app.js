@@ -23,7 +23,7 @@
   var TOPICS = window.KPIB_TOPICS || [];
   var topicOf = {};
   TOPICS.forEach(function (t) { topicOf[t.id] = t; });
-  var AUTHOR_COLORS = { baturin: "#e0b34a", morozov: "#6f95ec", streltsov: "#7fcadb", zueva: "#e8743b", frolov: "#9bc46a", kalkanov: "#e6a0c8" };
+  var AUTHOR_COLORS = { baturin: "#e0b34a", morozov: "#6f95ec", streltsov: "#7fcadb", zueva: "#e8743b", frolov: "#9bc46a", kalkanov: "#e6a0c8", sapronov: "#b48cf2" };
   var TYPE_COLORS = { article: "#dee2e6", chapter: "#8a9099", book: "#e0b34a", thesis: "#f08a8a", talk: "#7fcadb" };
   var WORKS = D.WORKS.concat((window.KPIB_ISTINA || []).map(function (w) { w.source = "istina"; return w; }));
   var byId = {};

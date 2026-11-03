@@ -6,7 +6,7 @@ SRC = os.path.join(HERE, "istina")
 os.chdir(SRC)
 
 CHECKED = "03.11.2026"
-PEOPLE = {"baturin": "1276994", "zueva": "3172534", "morozov": "26759990", "streltsov": "2826393"}
+PEOPLE = {"baturin": "1276994", "zueva": "3172534", "morozov": "26759990", "streltsov": "2826393", "sapronov": "324211318"}
 res = json.load(open("bib.json"))
 crossref = json.load(open("crossref.json")) if os.path.exists("crossref.json") else {}
 
@@ -235,8 +235,8 @@ for pid in PEOPLE:
             sci = re.search(r"\(([^)]*наук[^)]*)\)\s*$", spec)
             spec_code = re.search(r"специальности\s+([\d.]+)", spec)
             org = re.search(r".* при (.+)$", council)
-            fam_name = {"baturin": "Батурин, Ю.М.", "zueva": "Зуева, А.С.", "morozov": "Морозов, А.В.", "streltsov": "Стрельцов, А.А."}[pid]
-            full_name = {"baturin": "Батурин Юрий Михайлович", "zueva": "Зуева Анна Сергеевна", "morozov": "Морозов Андрей Витальевич", "streltsov": "Стрельцов Анатолий Александрович"}[pid]
+            fam_name = {"baturin": "Батурин, Ю.М.", "zueva": "Зуева, А.С.", "morozov": "Морозов, А.В.", "streltsov": "Стрельцов, А.А.", "sapronov": "Сапронов, Д.Ю."}[pid]
+            full_name = {"baturin": "Батурин Юрий Михайлович", "zueva": "Зуева Анна Сергеевна", "morozov": "Морозов Андрей Витальевич", "streltsov": "Стрельцов Анатолий Александрович", "sapronov": "Сапронов Дмитрий Юрьевич"}[pid]
             g = f"{fam_name} {title}"
             if spec_code:
                 g += f" : специальность {spec_code.group(1)}"
@@ -310,6 +310,26 @@ for k, v in NOTES.items():
         works[k]["verify"] = v
 if "streltsov-diss-2004" in works:
     works["streltsov-diss-2004"]["level"] = 10
+# Соавторы из числа сотрудников по полю author BibTeX (запись может отсутствовать в профиле соавтора)
+BIBNAME = {"baturin": "Батурин, Ю. М.", "zueva": "Зуева, А. С.", "morozov": "Морозов, А. В.", "streltsov": "Стрельцов, А. А.", "sapronov": "Сапронов, Д. Ю."}
+for k, w in works.items():
+    b = res.get(k, {}).get("bib", "")
+    au = re.search(r"author\s*=\s*\{(.*?)\},\n", b)
+    if not au:
+        continue
+    for pid, nm in BIBNAME.items():
+        if nm in au.group(1) and pid not in w["authors"]:
+            w["authors"].append(pid)
+# PDF в архиве конференции «Ломоносов»
+for w in works.values():
+    for l in w["links"]:
+        if "lomonosov-msu.ru/archive" in l["url"] and l["url"].endswith(".pdf"):
+            l["kind"] = "pdf"; l["label"] = "PDF · архив конференции «Ломоносов»"
+    w["links"].sort(key=lambda l: 0 if l["kind"] == "pdf" else 1)
+if "sapronov-diss-2026" in works:
+    works["sapronov-diss-2026"]["links"].append({"label": "Диссертационный совет МГУ: сведения о научном руководителе", "url": "https://dissovet.msu.ru/file/dissovet-docs/eb496304-84e1-11f1-9bf7-005056b96f20", "kind": "publisher"})
+if "a792817220" in works:
+    works["a792817220"]["verify"] = "В ИСТИНА к заглавию ошибочно присоединены слова «университета. Серия 26: Государственный аудит»; на карте заглавие дано без них. Сверить с выпуском журнала."
 # Полные тексты: КиберЛенинка, открытый доступ по DOI (OpenAlex), файлы в ИСТИНА
 ft = json.load(open("fulltext.json")) if os.path.exists("fulltext.json") else {}
 for k, v in ft.get("cyberleninka", {}).items():
