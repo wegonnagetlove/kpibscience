@@ -14,7 +14,7 @@
 
 <header class="nav">
   <nav class="nav-l" aria-label="Разделы">
-    <a href="#map">Карта</a>
+    <a href="#map">Вселенная</a>
     <a href="#works">Работы</a>
     <a href="#about">О карте</a>
     <a href="#sources">Источники</a>
@@ -31,40 +31,38 @@
   <p class="sub">Кафедра компьютерного права и информационной безопасности</p>
 </section>
 
-<section class="mapwrap" id="map" aria-label="Карта исследований">
-  <div class="bgs" id="bgs" aria-hidden="true"></div>
-  <div class="shade" aria-hidden="true"></div>
+<section class="mapwrap" id="map" aria-label="Карта вселенной исследований">
+  <canvas id="sky" tabindex="0" aria-label="Карта: звёзды-работы в созвездиях"></canvas>
 
   <div class="map-top">
-    <input id="search" type="search" placeholder="Поиск: заглавие, журнал, год" aria-label="Поиск">
+    <input id="search" type="search" placeholder="Поиск звезды: заглавие, журнал, год" aria-label="Поиск">
     <div id="people" class="chips"></div>
-    <div class="legend" id="legend"></div>
+    <span class="found" id="found"></span>
   </div>
 
-  <div id="stage" class="stage" tabindex="0" aria-label="Шкала"></div>
+  <nav class="const" id="const" aria-label="Созвездия"></nav>
 
-  <div class="dock" id="dock">
-    <div class="readout">
-      <span class="lvl-num" id="lvlNum">6</span>
-      <div class="lvl-text">
-        <div class="lvl-name" id="lvlName">Государство</div>
-        <div class="lvl-hint" id="lvlHint"></div>
-      </div>
-      <button class="lvl-open" id="lvlOpen" type="button">Список</button>
-    </div>
-    <div class="slider-wrap">
-      <button class="zbtn" id="zoomIn" type="button" aria-label="Мельче">−</button>
-      <div class="track">
-        <input id="zoom" type="range" min="-3.4" max="5.4" step="0.001" value="2" aria-label="Масштаб">
-        <div class="ticks" id="ticks"></div>
-      </div>
-      <button class="zbtn" id="zoomOut" type="button" aria-label="Крупнее">+</button>
-    </div>
+  <div class="hud">
+    <div class="hud-name" id="hudName">Вся вселенная кафедры</div>
+    <div class="hud-hint" id="hudHint"></div>
   </div>
 
-  <div id="hint" class="hint">Двигайте ползунок или нажмите на карту и вращайте колесо мыши. Точка на карте: одна работа.</div>
+  <div class="zoom">
+    <button id="zIn" type="button" aria-label="Приблизить">+</button>
+    <button id="zOut" type="button" aria-label="Отдалить">−</button>
+    <button id="zAll" type="button" aria-label="Вся карта" class="all">Вся карта</button>
+  </div>
+
+  <div class="legend" id="legend"></div>
+  <div id="tip" class="tip" hidden></div>
+  <div id="hint" class="hint">Перетаскивайте карту. Нажмите на неё и вращайте колесо мыши, чтобы приблизить созвездие.</div>
 </section>
 <p class="photo-credit" id="photoCredit"></p>
+
+<section class="gallery-sec">
+  <div class="gallery" id="gallery"></div>
+  <p class="photo-credit" id="galleryCredit"></p>
+</section>
 
 <section class="sec" id="about">
   <aside class="sec-aside">
