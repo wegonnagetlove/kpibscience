@@ -26,7 +26,8 @@
 
 ```
 index.html          страница
-assets/style.css    оформление (белый фон, Google Sans, палитра #4285F4 #EA4335 #FBBC04 #34A853)
+assets/style.css    оформление в стиле выставочной страницы: Oswald, Cormorant Garamond, PT Serif, карта на фоне снимков с орбиты
+assets/img/         фотографии фона карты (набор и подписи в data/research.js, PHOTOS)
 assets/app.js       движок шкалы, фильтры, карточки, список
 data/research.js    настройки: уровни, сотрудники, источники, работы вне ИСТИНА
 data/works.js       работы из ИСТИНА МГУ (генерируется, вручную не править)

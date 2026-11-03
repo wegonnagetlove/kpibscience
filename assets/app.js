@@ -29,7 +29,25 @@
   var query = "";
 
   var $ = function (s) { return document.querySelector(s); };
-  var stage = $("#stage"), slider = $("#zoom");
+  var stage = $("#stage"), slider = $("#zoom"), mapwrap = $("#map");
+
+  /* ---------- фотографии фона ---------- */
+  var PHOTOS = D.PHOTOS || [];
+  var bgEls = PHOTOS.map(function (ph) {
+    var el = document.createElement("div");
+    el.style.backgroundImage = "url('" + ph.src + "')";
+    $("#bgs").appendChild(el);
+    return el;
+  });
+  var curPhoto = -1;
+  function setPhoto(level) {
+    var idx = -1;
+    PHOTOS.forEach(function (ph, i) { if (ph.levels.indexOf(level) >= 0) idx = i; });
+    if (idx < 0 || idx === curPhoto) return;
+    curPhoto = idx;
+    bgEls.forEach(function (el, i) { el.classList.toggle("on", i === idx); });
+    $("#photoCredit").textContent = PHOTOS[idx].caption + ". " + (D.photoCredit || "");
+  }
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -182,7 +200,14 @@
     var cnt = WORKS.filter(function (w) { return w.level === info.level && isActive(w); }).length;
     $("#lvlOpen").textContent = "Список: " + cnt;
     $("#lvlOpen").dataset.l = info.level;
-    tickEls.forEach(function (t) { t.classList.toggle("is-on", +t.dataset.l === info.level); });
+    tickEls.forEach(function (t) {
+      var on = +t.dataset.l === info.level;
+      t.classList.toggle("is-on", on);
+      var L2 = levelInfo(+t.dataset.l);
+      t.textContent = on ? (L2.tick || L2.name) : String(L2.level - MIN_L + 1);
+      t.title = L2.name;
+    });
+    setPhoto(info.level);
     if (document.activeElement !== slider) slider.value = z;
   }
 
@@ -209,7 +234,7 @@
   slider.addEventListener("change", function () { setTarget(Math.round(+slider.value)); });
   $("#zoomIn").addEventListener("click", function () { setTarget(Math.round(zTarget) - 1); });
   $("#zoomOut").addEventListener("click", function () { setTarget(Math.round(zTarget) + 1); });
-  $("#lvlOpen").addEventListener("click", function () { showView("list"); scrollToLevel(+this.dataset.l); });
+  $("#lvlOpen").addEventListener("click", function () { scrollToLevel(+this.dataset.l); });
 
   var tickEls = LEVELS.map(function (L) {
     var b = document.createElement("button");
@@ -221,7 +246,12 @@
   });
 
   var snapTimer = null;
+  var mapActive = false;
+  function setActive(v) { mapActive = v; mapwrap.classList.toggle("is-active", v); }
+  stage.addEventListener("pointerdown", function () { setActive(true); hideHint(); });
+  mapwrap.addEventListener("mouseleave", function () { setActive(false); });
   stage.addEventListener("wheel", function (e) {
+    if (!mapActive) return;
     e.preventDefault();
     var delta = (Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX);
     if (e.deltaMode === 1) delta *= 16;
@@ -346,7 +376,7 @@
           function () { btn.textContent = "Выделите текст вручную"; });
       } catch (e) { btn.textContent = "Выделите текст вручную"; }
     });
-    $("#toLevel").addEventListener("click", function (e) { e.preventDefault(); showView("scale"); goTo(w.level); });
+    $("#toLevel").addEventListener("click", function (e) { e.preventDefault(); closePanel(); mapwrap.scrollIntoView({ behavior: "smooth" }); goTo(w.level); });
     panel.classList.add("is-open"); panel.setAttribute("aria-hidden", "false");
     try { history.replaceState(null, "", "#" + w.id); } catch (e) {}
   }
@@ -358,6 +388,7 @@
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") closePanel(); });
 
   /* ---------- список ---------- */
+  var expanded = {}, PAGE = 20;
   function renderList() {
     var html = "", total = 0;
     LEVELS.slice().reverse().forEach(function (L) {
@@ -365,63 +396,58 @@
         .sort(function (a, b) { return (b.year || 0) - (a.year || 0); });
       if (!ws.length) return;
       total += ws.length;
-      html += '<h2 id="lvl-' + (L.level - MIN_L + 1) + '"><span class="n">' + (L.level - MIN_L + 1) + "</span>" + esc(L.name) +
-        " <small>" + esc(L.hint) + " · " + ws.length + "</small></h2>";
-      ws.forEach(function (w) {
+      html += '<h4 id="lvl-' + (L.level - MIN_L + 1) + '"><span class="n">' + (L.level - MIN_L + 1) + "</span>" + esc(L.name) +
+        " <small>" + esc(L.hint) + ", " + ws.length + "</small></h4>";
+      var shown = expanded[L.level] ? ws : ws.slice(0, PAGE);
+      shown.forEach(function (w) {
         var doi = (w.links || []).some(function (l) { return l.kind.indexOf("doi") === 0; });
         html += '<div class="row" data-id="' + esc(w.id) + '"><div class="ry">' + esc(w.year || "") + '</div><div><div class="rt">' +
-          esc(w.title) + '</div><div class="ra">' + esc(authorsLine(w)) + " · " + esc(TYPES[w.type].name) +
-          (w.venue ? " · " + esc(w.venue) : "") + (doi ? ' · <b class="doi">DOI</b>' : "") + "</div></div></div>";
+          esc(w.title) + '</div><div class="ra">' + esc(authorsLine(w)) + ". " + esc(TYPES[w.type].name) +
+          (w.venue ? ". " + esc(w.venue) : "") + (doi ? ' <span class="doi">DOI</span>' : "") + "</div></div></div>";
       });
+      if (ws.length > shown.length) html += '<button class="more" type="button" data-l="' + L.level + '">Показать ещё ' + (ws.length - shown.length) + "</button>";
     });
     $("#list").innerHTML = '<p class="list-total">Найдено работ: ' + total + "</p>" + (html || "<p>Ничего не найдено.</p>");
   }
   $("#list").addEventListener("click", function (e) {
+    var m = e.target.closest(".more");
+    if (m) { expanded[+m.dataset.l] = true; renderList(); return; }
     var r = e.target.closest(".row");
     if (r) openPanel(byId[r.dataset.id]);
   });
   function scrollToLevel(l) {
     var h = document.getElementById("lvl-" + (l - MIN_L + 1));
-    if (h) $("#list").scrollTop = h.offsetTop - 70;
+    (h || $("#works")).scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  /* ---------- о проекте ---------- */
+  /* ---------- о карте и источники ---------- */
   function renderAbout() {
+    var withDoi = WORKS.filter(function (w) { return (w.links || []).some(function (l) { return l.kind.indexOf("doi") === 0; }); }).length;
+    $("#aboutBody").innerHTML =
+      "<h2>О карте</h2>" +
+      '<p class="lead">Научные работы сотрудников кафедры расположены на одной шкале: от отдельной единицы данных до космоса.</p>' +
+      "<p>Навигация устроена как шкала масштаба вселенной: каждый следующий уровень крупнее предыдущего, и движение по шкале переводит взгляд от данных и алгоритмов к человеку, организации, отрасли, государству, международному уровню, глобальной среде и космосу. Каждая точка на карте означает одну работу; нажатие открывает её библиографическую запись и источники.</p>" +
+      '<ol class="levels">' + LEVELS.map(function (L) {
+        return '<li><span class="n">' + (L.level - MIN_L + 1) + "</span><b>" + esc(L.name) + "</b><span>" + esc(L.hint) + "</span></li>";
+      }).join("") + "</ol>" +
+      "<p>Уровень присвоен автоматически по ключевым словам заглавия; работы без признаков другого уровня отнесены к уровню «Государство». Это навигационная классификация, а не оценка работы.</p>";
+    $("#stats").innerHTML = "Работ на карте: " + WORKS.length + "<br>Со ссылкой DOI: " + withDoi;
+    $("#checked").textContent = D.checkedAt;
     var srcs = Object.keys(D.SOURCES).map(function (k) {
-      var s = D.SOURCES[k];
-      return "<li>" + esc(s.title) + ". — Текст : электронный. — URL: <a href=\"" + esc(s.url) + "\" target=\"_blank\" rel=\"noopener\">" +
-        esc(s.url) + "</a> (дата обращения: " + esc(D.checkedAt) + ")." + (s.primary ? "" : " Вторичный источник.") + "</li>";
+      var s2 = D.SOURCES[k];
+      return "<li>" + esc(s2.title) + ". — Текст : электронный. — URL: <a href=\"" + esc(s2.url) + "\" target=\"_blank\" rel=\"noopener\">" +
+        esc(s2.url) + "</a> (дата обращения: " + esc(D.checkedAt) + ")." + (s2.primary ? "" : " Вторичный источник.") + "</li>";
     }).join("");
     var profiles = D.PEOPLE.filter(function (p) { return p.profile; }).map(function (p) {
       return '<li><a href="' + esc(p.profile) + '" target="_blank" rel="noopener">' + esc(p.name) + "</a></li>";
     }).join("");
-    var withDoi = WORKS.filter(function (w) { return (w.links || []).some(function (l) { return l.kind.indexOf("doi") === 0; }); }).length;
-    $("#about").innerHTML =
-      "<h2>О проекте</h2>" +
-      "<p>Сайт показывает научные работы сотрудников кафедры компьютерного права и информационной безопасности Высшей школы государственного аудита МГУ на одной шкале: от отдельной единицы данных до космоса. Принцип навигации заимствован у интерактивных шкал «масштаба вселенной», но вместо физического размера объекта используется масштаб объекта, которому посвящена работа.</p>" +
-      "<h2>Уровни шкалы</h2><ol>" + LEVELS.map(function (L) { return "<li><b>" + esc(L.name) + "</b>: " + esc(L.hint) + "</li>"; }).join("") + "</ol>" +
-      "<p>Уровень работе присвоен автоматически по ключевым словам заглавия (правила в файле build/build.py); работы без признаков другого уровня отнесены к уровню «Государство». Это навигационная классификация, а не оценка работы.</p>" +
-      "<h2>Источники данных</h2>" +
-      "<p>Списки работ выгружены из системы ИСТИНА МГУ " + esc(D.checkedAt) + " по профилям сотрудников:</p><ul>" + profiles + "</ul>" +
-      "<p>Библиографические записи построены по ГОСТ Р 7.0.100-2018 из экспорта BibTeX каждой записи ИСТИНА; заглавия и выходные данные приведены так, как их внесли авторы. У каждой работы есть ссылка на её запись в ИСТИНА. Ссылки на издателя (DOI), Scopus, Web of Science и eLibrary даны там, где они указаны в ИСТИНА или найдены по точному совпадению заглавия и года в Crossref. Работ со ссылкой DOI: " + withDoi + " из " + WORKS.length + ".</p>" +
+    $("#sourcesBody").innerHTML =
+      "<h2>Источники</h2>" +
+      "<p>Списки работ выгружены из системы ИСТИНА МГУ по профилям сотрудников:</p><ul>" + profiles + "</ul>" +
+      "<p>Библиографические записи построены по ГОСТ Р 7.0.100-2018 из экспорта BibTeX каждой записи ИСТИНА; заглавия и выходные данные приведены так, как их внесли авторы. У каждой работы есть ссылка на её запись в ИСТИНА. Ссылки на издателя (DOI), Scopus, Web of Science и eLibrary даны там, где они указаны в ИСТИНА или найдены по совпадению заглавия, года и издания в Crossref.</p>" +
       '<ol class="src"><li>Кафедра компьютерного права и информационной безопасности. — Текст : электронный // Высшая школа государственного аудита МГУ имени М.В. Ломоносова : официальный сайт. — URL: <a href="' + esc(D.department.url) + '" target="_blank" rel="noopener">' + esc(D.department.url) + "</a> (дата обращения: " + esc(D.checkedAt) + ").</li>" + srcs + "</ol>" +
-      "<p>Всего работ на шкале: " + WORKS.length + ".</p>";
+      "<p>" + esc(D.photoCredit || "") + "</p>";
   }
-
-  /* ---------- виды ---------- */
-  function showView(v) {
-    hideHint();
-    Array.prototype.forEach.call(document.querySelectorAll(".vbtn"), function (b) { b.classList.toggle("is-on", b.dataset.view === v); });
-    $("#list").hidden = v !== "list";
-    $("#about").hidden = v !== "about";
-    $("#dock").style.display = v === "scale" ? "" : "none";
-    panel.style.bottom = v === "scale" ? "" : "0";
-    document.querySelector(".filters").style.display = v === "about" ? "none" : "";
-    if (v === "scale") layout();
-  }
-  Array.prototype.forEach.call(document.querySelectorAll(".vbtn"), function (b) {
-    b.addEventListener("click", function () { showView(b.dataset.view); });
-  });
 
   /* ---------- подсказка ---------- */
   var hintGone = false;

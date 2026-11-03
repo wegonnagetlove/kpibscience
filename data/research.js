@@ -20,6 +20,16 @@ window.KPIB = {
     url: "https://audit.msu.ru/about/kafedra-kompyuternogo-prava-i-informatsionnoj-bezopasnosti/"
   },
 
+  // Фото фона карты: какой снимок показывать на каких уровнях
+  photoCredit: "Фотографии с орбиты: из архива Ю.М. Батурина.",
+  PHOTOS: [
+    { src: "assets/img/clouds.jpg",   levels: [-3, -2], caption: "Облачные поля над океаном и манипулятор станции" },
+    { src: "assets/img/vortices.jpg", levels: [-1, 0],  caption: "Вихревая дорожка в облаках" },
+    { src: "assets/img/panel.jpg",    levels: [1, 2],   caption: "Солнечная батарея над океаном" },
+    { src: "assets/img/horizon.jpg",  levels: [3, 4],   caption: "Земной горизонт в иллюминаторе" },
+    { src: "assets/img/station.jpg",  levels: [5],      caption: "Солнечные батареи орбитальной станции" }
+  ],
+
   LEVELS: [
     { level: -3, name: "Данные",        hint: "единица информации, персональные данные" },
     { level: -2, name: "Алгоритм",      hint: "программа, модель искусственного интеллекта" },

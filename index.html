@@ -4,64 +4,105 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Масштаб исследований кафедры компьютерного права и информационной безопасности</title>
-<meta name="description" content="Интерактивная шкала научных работ сотрудников кафедры компьютерного права и информационной безопасности ВШГА МГУ: от единицы данных до глобальной информационной среды.">
+<meta name="description" content="Карта научных работ сотрудников кафедры компьютерного права и информационной безопасности ВШГА МГУ: от единицы данных до космоса.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=PT+Serif:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 
-<header class="top">
-  <div class="brand">
-    <h1>Масштаб исследований</h1>
-    <p class="sub">Кафедра компьютерного права и информационной безопасности ВШГА МГУ</p>
-  </div>
-  <div class="top-right">
-    <nav class="views" aria-label="Вид">
-      <button class="vbtn is-on" data-view="scale" type="button">Шкала</button>
-      <button class="vbtn" data-view="list" type="button">Список</button>
-      <button class="vbtn" data-view="about" type="button">О проекте</button>
-    </nav>
-    <div class="dots" aria-hidden="true"><i class="c-blue"></i><i class="c-red"></i><i class="c-yellow"></i><i class="c-green"></i></div>
-  </div>
+<header class="nav">
+  <nav class="nav-l" aria-label="Разделы">
+    <a href="#map">Карта</a>
+    <a href="#works">Работы</a>
+    <a href="#about">О карте</a>
+    <a href="#sources">Источники</a>
+  </nav>
+  <a class="mark" href="#top" aria-label="В начало"><span></span></a>
+  <nav class="nav-r" aria-label="Внешние ссылки">
+    <a href="https://istina.msu.ru/" target="_blank" rel="noopener">ИСТИНА</a>
+    <a href="https://audit.msu.ru/about/kafedra-kompyuternogo-prava-i-informatsionnoj-bezopasnosti/" target="_blank" rel="noopener">Кафедра</a>
+  </nav>
 </header>
 
-<section class="filters" aria-label="Фильтр по сотрудникам">
-  <div class="left-tools"><input id="search" type="search" placeholder="Поиск по заглавию, журналу, году" aria-label="Поиск"><div id="people" class="chips"></div></div>
-  <div class="legend" id="legend"></div>
+<section class="hero" id="top">
+  <h1>Масштаб исследований</h1>
+  <p class="sub">Кафедра компьютерного права и информационной безопасности</p>
 </section>
 
-<main id="stage" class="stage" aria-label="Шкала исследований" tabindex="0"></main>
+<section class="mapwrap" id="map" aria-label="Карта исследований">
+  <div class="bgs" id="bgs" aria-hidden="true"></div>
+  <div class="shade" aria-hidden="true"></div>
 
-<section id="list" class="list" hidden></section>
-<section id="about" class="about" hidden></section>
+  <div class="map-top">
+    <input id="search" type="search" placeholder="Поиск: заглавие, журнал, год" aria-label="Поиск">
+    <div id="people" class="chips"></div>
+    <div class="legend" id="legend"></div>
+  </div>
 
-<footer class="dock" id="dock">
-  <div class="readout">
-    <span class="lvl-num" id="lvlNum">2</span>
-    <div>
-      <div class="lvl-name" id="lvlName">Государство</div>
-      <div class="lvl-hint" id="lvlHint"></div>
+  <div id="stage" class="stage" tabindex="0" aria-label="Шкала"></div>
+
+  <div class="dock" id="dock">
+    <div class="readout">
+      <span class="lvl-num" id="lvlNum">6</span>
+      <div class="lvl-text">
+        <div class="lvl-name" id="lvlName">Государство</div>
+        <div class="lvl-hint" id="lvlHint"></div>
+      </div>
+      <button class="lvl-open" id="lvlOpen" type="button">Список</button>
     </div>
-    <button class="lvl-open" id="lvlOpen" type="button">Список</button>
-  </div>
-  <div class="slider-wrap">
-    <button class="zbtn" id="zoomOut" type="button" aria-label="Мельче">−</button>
-    <div class="track">
-      <input id="zoom" type="range" min="-3.4" max="4.4" step="0.001" value="2" aria-label="Масштаб">
-      <div class="ticks" id="ticks"></div>
+    <div class="slider-wrap">
+      <button class="zbtn" id="zoomIn" type="button" aria-label="Мельче">−</button>
+      <div class="track">
+        <input id="zoom" type="range" min="-3.4" max="5.4" step="0.001" value="2" aria-label="Масштаб">
+        <div class="ticks" id="ticks"></div>
+      </div>
+      <button class="zbtn" id="zoomOut" type="button" aria-label="Крупнее">+</button>
     </div>
-    <button class="zbtn" id="zoomIn" type="button" aria-label="Крупнее">+</button>
   </div>
+
+  <div id="hint" class="hint">Двигайте ползунок или нажмите на карту и вращайте колесо мыши. Точка на карте: одна работа.</div>
+</section>
+<p class="photo-credit" id="photoCredit"></p>
+
+<section class="sec" id="about">
+  <aside class="sec-aside">
+    <h3>Кафедра компьютерного права и информационной безопасности</h3>
+    <p>Высшая школа государственного аудита (факультет)<br>МГУ имени М.В. Ломоносова</p>
+    <p>Москва, Ленинские горы, д. 1, стр. 13</p>
+    <p id="stats"></p>
+  </aside>
+  <div class="sec-main" id="aboutBody"></div>
+</section>
+
+<section class="sec" id="works">
+  <aside class="sec-aside">
+    <h3>Работы</h3>
+    <p>Список совпадает с картой: учитываются поиск и выбранные авторы.</p>
+  </aside>
+  <div class="sec-main">
+    <h2>Работы по уровням</h2>
+    <div id="list"></div>
+  </div>
+</section>
+
+<section class="sec" id="sources">
+  <aside class="sec-aside">
+    <h3>Источники</h3>
+    <p>Данные проверены <span id="checked"></span></p>
+  </aside>
+  <div class="sec-main" id="sourcesBody"></div>
+</section>
+
+<footer class="foot">
+  <p>Масштаб исследований. Кафедра компьютерного права и информационной безопасности ВШГА МГУ имени М.В. Ломоносова</p>
 </footer>
 
 <aside id="panel" class="panel" aria-hidden="true">
   <button class="close" id="panelClose" type="button" aria-label="Закрыть">×</button>
   <div id="panelBody"></div>
 </aside>
-
-<div id="hint" class="hint">Прокручивайте колесо, двигайте ползунок или проводите пальцем, чтобы менять масштаб. Нажмите на точку, чтобы открыть карточку работы.</div>
 
 <script src="data/research.js"></script>
 <script src="data/works.js"></script>
