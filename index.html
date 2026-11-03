@@ -28,7 +28,7 @@
 </header>
 
 <section class="filters" aria-label="Фильтр по сотрудникам">
-  <div id="people" class="chips"></div>
+  <div class="left-tools"><input id="search" type="search" placeholder="Поиск по заглавию, журналу, году" aria-label="Поиск"><div id="people" class="chips"></div></div>
   <div class="legend" id="legend"></div>
 </section>
 
@@ -44,6 +44,7 @@
       <div class="lvl-name" id="lvlName">Государство</div>
       <div class="lvl-hint" id="lvlHint"></div>
     </div>
+    <button class="lvl-open" id="lvlOpen" type="button">Список</button>
   </div>
   <div class="slider-wrap">
     <button class="zbtn" id="zoomOut" type="button" aria-label="Мельче">−</button>
@@ -60,9 +61,10 @@
   <div id="panelBody"></div>
 </aside>
 
-<div id="hint" class="hint">Прокручивайте колесо, двигайте ползунок или проводите пальцем, чтобы менять масштаб. Нажмите на работу, чтобы открыть карточку.</div>
+<div id="hint" class="hint">Прокручивайте колесо, двигайте ползунок или проводите пальцем, чтобы менять масштаб. Нажмите на точку, чтобы открыть карточку работы.</div>
 
 <script src="data/research.js"></script>
+<script src="data/works.js"></script>
 <script src="assets/app.js"></script>
 </body>
 </html>
