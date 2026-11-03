@@ -52,6 +52,12 @@ body.panel-open .topright { right: calc(min(600px, 44vw) + 10px); }
 .p-head .kind { font-family: var(--ui); font-size: 14px; color: var(--dim); white-space: nowrap; }
 .p-head.long h2 { font-size: 21px; flex-basis: 100%; }
 
+.read { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 18px; }
+.read-btn { display: inline-block; background: var(--pc, var(--accent)); color: #000; text-decoration: none; font-family: var(--ui); font-weight: 700; font-size: 14px; padding: 8px 16px; }
+.read-btn:hover { filter: brightness(1.15); }
+.read-btn.ghost { background: none; color: var(--fg); border: 1px solid var(--pc, var(--accent)); }
+.read-src { font-size: 12px; color: var(--dim); flex-basis: 100%; }
+.li .pdf { color: var(--accent); font-family: var(--ui); }
 .panel h3 { font-family: var(--ui); font-weight: 700; font-size: 18px; color: #fff; margin: 28px 0 10px; }
 .facts { display: grid; grid-template-columns: minmax(150px, 38%) 1fr; gap: 7px 14px; font-size: 13px; }
 .facts dt { color: var(--dim); }

@@ -49,7 +49,8 @@
   function hexA(hex, a) { var n = parseInt(hex.slice(1), 16); return "rgba(" + (n >> 16) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")"; }
 
   /* ---------- фильтры ---------- */
-  var offPeople = {}, offTypes = {};
+  var offPeople = {}, offTypes = {}, onlyPdf = false;
+  function pdfOf(w) { return (w.links || []).filter(function (l) { return l.kind === "pdf"; })[0]; }
   function typeGroup(t) {
     for (var i = 0; i < TYPE_GROUPS.length; i++) {
       var g = TYPE_GROUPS[i];
@@ -58,6 +59,7 @@
     return t;
   }
   function passes(w) {
+    if (onlyPdf && !pdfOf(w)) return false;
     if (offTypes[typeGroup(w.type)]) return false;
     if (Object.keys(offPeople).length && !w.authors.some(function (id) { return !offPeople[id]; })) return false;
     return true;
@@ -384,7 +386,7 @@
   }
   function workRow(w) {
     return '<div class="li" data-work="' + esc(w.id) + '"><div class="ly">' + esc(w.year || "") + '</div><div><div class="lt">' + esc(w.title) +
-      '</div><div class="la">' + esc(shortAuthors(w)) + " · " + esc(TYPES[w.type].name) + "</div></div></div>";
+      '</div><div class="la">' + esc(shortAuthors(w)) + " · " + esc(TYPES[w.type].name) + (pdfOf(w) ? ' · <b class="pdf">PDF</b>' : "") + "</div></div></div>";
   }
   function histogram(list) {
     var counts = {}, max = 0;
@@ -403,6 +405,7 @@
     var links = "";
     if (w.istina) links += '<a class="pill" href="' + esc(w.istina) + '" target="_blank" rel="noopener">' + (w.istinaKind === "record" ? "Запись в ИСТИНА МГУ" : "Профиль в ИСТИНА МГУ") + " ↗</a>";
     (w.links || []).forEach(function (l) {
+      if (l.kind === "pdf" || l.kind === "fulltext") return;
       var lbl = l.kind === "doi" ? l.label : l.kind === "doi-crossref" ? l.label + " (Crossref)" : l.label;
       links += '<a class="pill" href="' + esc(l.url) + '" target="_blank" rel="noopener">' + esc(lbl) + " ↗</a>";
     });
@@ -412,7 +415,12 @@
     }
     var near = o.works.filter(function (x) { return x !== w; })
       .sort(function (a, b) { return Math.abs((a.year || 0) - (w.year || 0)) - Math.abs((b.year || 0) - (w.year || 0)); }).slice(0, 8);
-    return head(w.title, TYPES[w.type].name) +
+    var pdf = pdfOf(w), ft = (w.links || []).filter(function (l) { return l.kind === "fulltext"; })[0];
+    var read = pdf ? '<div class="read"><a class="read-btn" href="' + esc(pdf.url) + '" target="_blank" rel="noopener">Читать PDF</a>' +
+        (ft ? '<a class="pill" href="' + esc(ft.url) + '" target="_blank" rel="noopener">' + esc(ft.label) + " ↗</a>" : "") +
+        '<span class="read-src">' + esc(pdf.label) + "</span></div>" :
+      (w.istinaFile ? '<div class="read"><a class="read-btn ghost" href="' + esc(w.istina) + '" target="_blank" rel="noopener">Полный текст в ИСТИНА</a><span class="read-src">файл прикреплён автором, доступен после входа в ИСТИНА</span></div>' : "");
+    return head(w.title, TYPES[w.type].name) + read +
       "<h3>Ключевые сведения</h3><dl class=\"facts\">" +
       "<dt>год</dt><dd>" + esc(w.year || "не указан") + "</dd>" +
       "<dt>авторы с кафедры</dt><dd>" + authors + "</dd>" +
@@ -536,12 +544,15 @@
       var n = WORKS.filter(function (w) { return typeGroup(w.type) === g[0]; }).length;
       return '<label class="chk"><input type="checkbox" data-t="' + g[0] + '"' + (offTypes[g[0]] ? "" : " checked") + "> " + esc(g[1]) + "<small>" + n + "</small></label>";
     }).join("");
+    var npdf = WORKS.filter(pdfOf).length;
     openModal("filter", head("Фильтры", "что показывать на орбитах") +
+      '<div class="res-h">Полный текст</div><label class="chk"><input type="checkbox" data-pdf="1"' + (onlyPdf ? " checked" : "") + "> Только работы с открытым PDF<small>" + npdf + "</small></label>" +
       '<div class="res-h">Авторы</div>' + ppl + '<div class="res-h">Виды работ</div>' + tps);
     $("#modalBody").addEventListener("change", function (e) {
       var i = e.target;
       if (i.dataset.p) { if (i.checked) delete offPeople[i.dataset.p]; else offPeople[i.dataset.p] = true; }
       if (i.dataset.t) { if (i.checked) delete offTypes[i.dataset.t]; else offTypes[i.dataset.t] = true; }
+      if (i.dataset.pdf) onlyPdf = i.checked;
       updateCount();
     });
   }

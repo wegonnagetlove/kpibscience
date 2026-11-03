@@ -1,0 +1,590 @@
+{
+ "cyberleninka": {
+  "a809323820": {
+   "s": 1,
+   "link": "/article/n/filosofiya-prirody-v-kosmicheskih-fotografiyah",
+   "year": 2025,
+   "journal": "Журнал Российского национального комитета по истории и философии науки и техники"
+  },
+  "a809323800": {
+   "s": 1,
+   "link": "/article/n/nuzhna-li-totalitarnomu-kosmicheskomu-korablyu-demokraticheskaya-sistema-upravleniya",
+   "year": 2025,
+   "journal": "Журнал Российского национального комитета по истории и философии науки и техники"
+  },
+  "a809323784": {
+   "s": 1,
+   "link": "/article/n/tyoploe-rukopozhatie-v-holodnoy-voyne",
+   "year": 2025,
+   "journal": "Журнал Российского национального комитета по истории и философии науки и техники"
+  },
+  "a774433661": {
+   "s": 1,
+   "link": "/article/n/slabye-mesta-iskusstvennogo-intellekta-i-problemy-ego-ispolzovaniya-v-programme-pravovaya-pomosch-ministerstva-yustitsii-rossii",
+   "year": 2025,
+   "journal": "Правовая информатика"
+  },
+  "a717476995": {
+   "s": 1,
+   "link": "/article/n/o-postroenii-standartov-iskusstvennoy-etiki-robotov",
+   "year": 2024,
+   "journal": "Социология науки и технологий"
+  },
+  "a702079684": {
+   "s": 1,
+   "link": "/article/n/vina-iskusstvennogo-intellekta-za-oshibku-i-problema-yadernoy-voennoy-bezopasnosti-v-kontekste-yuridicheskoy-topiki",
+   "year": 2024,
+   "journal": "Правопорядок: история, теория, практика"
+  },
+  "a617560613": {
+   "s": 1,
+   "link": "/article/n/specialized-legal-language-guided-ai",
+   "year": 2023,
+   "journal": "Legal Issues in the digital Age"
+  },
+  "a449240406": {
+   "s": 1,
+   "link": "/article/n/digital-humanities-the-explosive-rise-of-computer-technology",
+   "year": 2022,
+   "journal": "Социология науки и технологий"
+  },
+  "a262009276": {
+   "s": 1,
+   "link": "/article/n/pravovoy-status-kosmonavta-kratkiy-professionalnyy-kommentariy",
+   "year": 2019,
+   "journal": "Труды Института государства и права Российской академии наук"
+  },
+  "a163653284": {
+   "s": 1,
+   "link": "/article/n/chto-delaet-virtualnye-prestupleniya-realnymi",
+   "year": 2018,
+   "journal": "Труды Института государства и права Российской академии наук"
+  },
+  "a1307675": {
+   "s": 1,
+   "link": "/article/n/k-diskussiyam-o-dekriminalizatsii-klevety-i-oskorbleniya",
+   "year": 2008,
+   "journal": "Вестник Московского университета. Серия 10. Журналистика"
+  },
+  "a617561793": {
+   "s": 1,
+   "link": "/article/n/naukometriya-i-biogrammy-uchenogo",
+   "year": 2023,
+   "journal": "Проблемы деятельности ученого и научных коллективов"
+  },
+  "a1307791": {
+   "s": 0.93,
+   "link": "/article/n/ostrov-svobody-pressy-o-sozdanii-virtualnoy-ekspertnoy-mnogorolevoy-igry-dlya-obrabotki-proekta-zakona-o-smi",
+   "year": 2009,
+   "journal": "Медиаскоп"
+  },
+  "a792647380": {
+   "s": 1,
+   "link": "/article/n/smart-kontrol-v-finansovo-byudzhetnoy-sfere",
+   "year": 2025,
+   "journal": "Вестник Московского университета МВД России"
+  },
+  "a290558681": {
+   "s": 1,
+   "link": "/article/n/starenie-naseleniya-ugroza-demograficheskoy-bezopasnosti-ili-potentsial-razvitiya-serebryanoy-ekonomiki",
+   "year": 2019,
+   "journal": "Вестник Российского университета дружбы народов. Серия: Государственное и муниципальное управление"
+  },
+  "a14905470": {
+   "s": 1,
+   "link": "/article/n/teoretiko-metodologicheskie-osnovy-issledovaniya-pravoohranitelnoy-deyatelnosti",
+   "year": 2015,
+   "journal": "Символ науки"
+  },
+  "a10588351": {
+   "s": 1,
+   "link": "/article/n/zarubezhnyy-opyt-ustanovleniya-denezhnogo-dovolstviya-sotrudnikov-pravoohranitelnyh-organov-vremenno-prohodyaschih-sluzhbu-za",
+   "year": 2014,
+   "journal": "Вестник Московского университета МВД России"
+  },
+  "a8467776": {
+   "s": 1,
+   "link": "/article/n/kriminologicheskaya-harakteristika-ekonomicheskih-prestupleniy",
+   "year": 2014,
+   "journal": "Вестник Московского университета МВД России"
+  },
+  "a8417166": {
+   "s": 1,
+   "link": "/article/n/aktualnye-problemy-obespecheniya-ekonomicheskoy-bezopasnosti-soyuznogo-gosudarstva",
+   "year": 2014,
+   "journal": "Национальные интересы: приоритеты и безопасность"
+  },
+  "a30211884": {
+   "s": 1,
+   "link": "/article/n/osobennosti-podgotovki-spetsialistov-v-oblasti-raskrytiya-i-rassledovaniya-prestupleniy-sovershaemyh-na-rynke-tsennyh-bumag",
+   "year": 2011,
+   "journal": "Вестник экономической безопасности"
+  },
+  "a3172621": {
+   "s": 1,
+   "link": "/article/n/press-reliz-o-provedenii-rasshirennogo-zasedaniya-nauchno-tehnicheskogo-soveta-akademii-posvyaschennogo-dnyu-rossiyskoy-nauki",
+   "year": 2011,
+   "journal": "Вестник экономической безопасности"
+  },
+  "a3172536": {
+   "s": 0.98,
+   "link": "/article/n/o-provedenii-xiii-mezhvuzovskoy-nauchno-prakticheskoy-konferentsii-kursantov-slushateley-i-studentov-na-temu-ugolovno-pravovye-i",
+   "year": 2010,
+   "journal": "Вестник экономической безопасности"
+  },
+  "a3172584": {
+   "s": 1,
+   "link": "/article/n/obzor-nauchnoy-deyatelnosti-akademii-za-2008-g",
+   "year": 2009,
+   "journal": "Вестник экономической безопасности"
+  },
+  "a247829572": {
+   "s": 1,
+   "link": "/article/n/sotsialno-demograficheskaya-sostavlyayuschaya-konkurentosposobnosti-dalnego-vostoka-nekotorye-teoreticheskie-voprosy",
+   "year": 2019,
+   "journal": "Россия: тенденции и перспективы развития"
+  },
+  "a826766601": {
+   "s": 1,
+   "link": "/article/n/k-yubileyu-sozdatelya-svoda-zakonov-sssr-terebilova-vladimira-ivanovicha",
+   "year": 2026,
+   "journal": "Правовая информатика"
+  },
+  "a774433780": {
+   "s": 1,
+   "link": "/article/n/nekotorye-stranitsy-istorii-nauchnogo-tsentra-pravovoy-informatsii",
+   "year": 2025,
+   "journal": "Правовая информатика"
+  },
+  "a354162683": {
+   "s": 1,
+   "link": "/article/n/istoriya-pravovoy-informatizatsii-minyusta-rossii",
+   "year": 2020,
+   "journal": "Правовая информатика"
+  },
+  "a348150023": {
+   "s": 1,
+   "link": "/article/n/istoriya-i-perspektivy-razvitiya-sistemy-monitoringa-pravoprimeneniya-minyusta-rossii",
+   "year": 2020,
+   "journal": "Мониторинг правоприменения"
+  },
+  "a348154803": {
+   "s": 1,
+   "link": "/article/n/problemy-pravovogo-regulirovaniya-tsifrovyh-tehnologiy-v-rossii-i-za-rubezhom",
+   "year": 2019,
+   "journal": "Вестник Университета имени О. Е. Кутафина"
+  }
+ },
+ "openalex": {
+  "a617560613": {
+   "doi": "10.17323/2713-2749.2023.3.4.22",
+   "oa": true,
+   "status": "diamond",
+   "pdf": null,
+   "land": "https://doi.org/10.17323/2713-2749.2023.3.4.22"
+  },
+  "a593785685": {
+   "doi": "10.17323/tis.2023.17797",
+   "oa": true,
+   "status": "diamond",
+   "pdf": "https://tis.hse.ru/article/download/17797/16089",
+   "land": "http://dx.doi.org/10.17323/tis.2023.17797"
+  },
+  "a520464131": {
+   "doi": "10.17323/tis.2022.16346",
+   "oa": true,
+   "status": "diamond",
+   "pdf": "https://tis.hse.ru/article/download/16346/15407",
+   "land": "https://doi.org/10.17323/tis.2022.16346"
+  },
+  "a449240406": {
+   "doi": "10.24412/2079-0910-2022-1-149-155",
+   "oa": true,
+   "status": "green",
+   "pdf": null,
+   "land": "https://doi.org/10.24412/2079-0910-2022-1-149-155"
+  },
+  "a513077504": {
+   "doi": "10.1134/s1019331621060010",
+   "oa": false,
+   "status": "closed",
+   "pdf": null,
+   "land": null
+  },
+  "a413383858": {
+   "doi": "10.31857/s0869587321110025",
+   "oa": false,
+   "status": "closed",
+   "pdf": null,
+   "land": null
+  },
+  "a379363364": {
+   "doi": "10.34131/MSF.21.2.132-147",
+   "oa": true,
+   "status": "bronze",
+   "pdf": "https://doi.org/10.34131/msf.21.2.132-147",
+   "land": "https://doi.org/10.34131/msf.21.2.132-147"
+  },
+  "a364698680": {
+   "doi": "10.34131/MSF.21.1.128-147",
+   "oa": true,
+   "status": "bronze",
+   "pdf": "https://doi.org/10.34131/msf.21.1.128-147",
+   "land": "https://doi.org/10.34131/msf.21.1.128-147"
+  },
+  "a393505432": {
+   "doi": "10.17323/tis.2020.13376",
+   "oa": true,
+   "status": "diamond",
+   "pdf": "https://tis.hse.ru/article/download/13376/13211",
+   "land": "https://doi.org/10.17323/tis.2020.13376"
+  },
+  "a354167156": {
+   "doi": "10.24411/2079-0910-2020-14011",
+   "oa": true,
+   "status": "green",
+   "pdf": null,
+   "land": "https://doi.org/10.24411/2079-0910-2020-14011"
+  },
+  "a291398457": {
+   "doi": "10.1007/978-981-32-9915-3_23",
+   "oa": true,
+   "status": "hybrid",
+   "pdf": "https://link.springer.com/content/pdf/10.1007%2F978-981-32-9915-3_23.pdf",
+   "land": "https://doi.org/10.1007/978-981-32-9915-3_23"
+  },
+  "a12232038": {
+   "doi": "10.1016/j.culher.2014.09.014",
+   "oa": false,
+   "status": "closed",
+   "pdf": null,
+   "land": null
+  },
+  "a809323963": {
+   "doi": "10.1109/ent68818.2025.11245748",
+   "oa": false,
+   "status": "closed",
+   "pdf": null,
+   "land": null
+  },
+  "a518333586": {
+   "doi": "10.34706/978-5-8211-0809-8-14-27",
+   "oa": true,
+   "status": "green",
+   "pdf": null,
+   "land": "https://doi.org/10.34706/978-5-8211-0809-8-14-27"
+  },
+  "a413384637": {
+   "doi": "10.20948/graphicon-2021-3027-549-554",
+   "oa": true,
+   "status": "diamond",
+   "pdf": "https://doi.org/10.20948/graphicon-2021-3027-549-554",
+   "land": "http://doi.org/10.20948/graphicon-2021-3027-549-554"
+  },
+  "a393414227": {
+   "doi": "10.1109/ent52731.2021.00007",
+   "oa": false,
+   "status": "closed",
+   "pdf": null,
+   "land": null
+  },
+  "a393414118": {
+   "doi": "10.1109/ent52731.2021.00012",
+   "oa": false,
+   "status": "closed",
+   "pdf": null,
+   "land": null
+  },
+  "a610867516": {
+   "doi": "10.1007/978-981-32-9915-3_23",
+   "oa": true,
+   "status": "hybrid",
+   "pdf": "https://link.springer.com/content/pdf/10.1007%2F978-981-32-9915-3_23.pdf",
+   "land": "https://doi.org/10.1007/978-981-32-9915-3_23"
+  },
+  "a338463751": {
+   "doi": "10.1109/ent48576.2020.00007",
+   "oa": false,
+   "status": "closed",
+   "pdf": null,
+   "land": null
+  },
+  "a260560757": {
+   "doi": "10.1007/978-981-32-9915-3_23",
+   "oa": true,
+   "status": "hybrid",
+   "pdf": "https://link.springer.com/content/pdf/10.1007%2F978-981-32-9915-3_23.pdf",
+   "land": "https://doi.org/10.1007/978-981-32-9915-3_23"
+  },
+  "a261413754": {
+   "doi": "10.1109/ent.2019.00006",
+   "oa": false,
+   "status": "closed",
+   "pdf": null,
+   "land": null
+  },
+  "a252602918": {
+   "doi": "10.30987/graphicon-2019-2-155-158",
+   "oa": true,
+   "status": "hybrid",
+   "pdf": "https://doi.org/10.30987/graphicon-2019-2-155-158",
+   "land": "https://doi.org/10.30987/graphicon-2019-2-155-158"
+  },
+  "a171744183": {
+   "doi": "10.1109/ent.2018.00010",
+   "oa": false,
+   "status": "closed",
+   "pdf": null,
+   "land": null
+  },
+  "a90004681": {
+   "doi": "10.1109/ent.2017.23",
+   "oa": false,
+   "status": "closed",
+   "pdf": null,
+   "land": null
+  },
+  "b254620809": {
+   "doi": "10.1007/978-981-32-9915-3",
+   "oa": true,
+   "status": "hybrid",
+   "pdf": "https://link.springer.com/content/pdf/10.1007/978-981-32-9915-3.pdf?pdf=button",
+   "land": "https://doi.org/10.1007/978-981-32-9915-3"
+  },
+  "a823359511": {
+   "doi": "10.23925/2179-3565.2025v16i3p186-200",
+   "oa": true,
+   "status": "diamond",
+   "pdf": "https://revistas.pucsp.br/index.php/risus/article/download/72962/48689",
+   "land": "https://doi.org/10.23925/2179-3565.2025v16i3p186-200"
+  },
+  "a823359704": {
+   "doi": "10.20397/2177-6652/2024.v24i2.2834",
+   "oa": true,
+   "status": "diamond",
+   "pdf": "https://revistagt.fpl.emnuvens.com.br/get/article/download/2834/1558",
+   "land": "https://doi.org/10.20397/2177-6652/2024.v24i2.2834"
+  },
+  "a666540092": {
+   "doi": "10.1007/978-3-031-34256-1_5",
+   "oa": false,
+   "status": "closed",
+   "pdf": null,
+   "land": null
+  },
+  "a569963292": {
+   "doi": "10.1051/e3sconf/202338102038",
+   "oa": true,
+   "status": "diamond",
+   "pdf": "https://www.e3s-conferences.org/articles/e3sconf/pdf/2023/18/e3sconf_aquaculture2023_02038.pdf",
+   "land": "http://dx.doi.org/10.1051/e3sconf/202338102038"
+  },
+  "a534744075": {
+   "doi": "10.1117/12.2669566",
+   "oa": false,
+   "status": "closed",
+   "pdf": null,
+   "land": null
+  },
+  "a823358323": {
+   "doi": "10.1016/j.trpro.2022.06.153",
+   "oa": true,
+   "status": "diamond",
+   "pdf": "https://www.sciencedirect.com/science/article/pii/S2352146522004082/pdf",
+   "land": "https://doi.org/10.1016/j.trpro.2022.06.153"
+  },
+  "a823358305": {
+   "doi": "10.1016/j.trpro.2022.06.150",
+   "oa": true,
+   "status": "diamond",
+   "pdf": "https://www.sciencedirect.com/science/article/pii/S2352146522004057/pdf",
+   "land": "https://doi.org/10.1016/j.trpro.2022.06.150"
+  },
+  "a424832114": {
+   "doi": "10.33543/1102",
+   "oa": true,
+   "status": "diamond",
+   "pdf": "https://doi.org/10.33543/1102",
+   "land": "https://doi.org/10.33543/1102"
+  },
+  "a393505690": {
+   "doi": "10.1088/1742-6596/2001/1/012015",
+   "oa": true,
+   "status": "diamond",
+   "pdf": "https://iopscience.iop.org/article/10.1088/1742-6596/2001/1/012015/pdf",
+   "land": "https://doi.org/10.1088/1742-6596/2001/1/012015"
+  },
+  "a388703300": {
+   "doi": "10.1088/1755-1315/808/1/012009",
+   "oa": true,
+   "status": "diamond",
+   "pdf": "https://iopscience.iop.org/article/10.1088/1755-1315/808/1/012009/pdf",
+   "land": "https://doi.org/10.1088/1755-1315/808/1/012009"
+  },
+  "a365664442": {
+   "doi": "10.1051/e3sconf/202124410058",
+   "oa": true,
+   "status": "diamond",
+   "pdf": "https://www.e3s-conferences.org/articles/e3sconf/pdf/2021/20/e3sconf_emmft2020_10058.pdf",
+   "land": "https://doi.org/10.1051/e3sconf/202124410058"
+  },
+  "a362596119": {
+   "doi": "10.30987/2686-8326-2021-47-51",
+   "oa": true,
+   "status": "diamond",
+   "pdf": "https://bstu.editorum.ru/en/storage/download/62584",
+   "land": "https://doi.org/10.30987/2686-8326-2021-47-51"
+  },
+  "a332474424": {
+   "doi": "10.9770/jesi.2020.7.4(61)",
+   "oa": true,
+   "status": "gold",
+   "pdf": "https://jssidoi.org/jesi/article/download/600",
+   "land": "https://doi.org/10.9770/jesi.2020.7.4(61)"
+  },
+  "a221493239": {
+   "doi": "10.2991/ismge-19.2019.54",
+   "oa": true,
+   "status": "hybrid",
+   "pdf": null,
+   "land": "https://doi.org/10.2991/ismge-19.2019.54"
+  },
+  "a221493230": {
+   "doi": "10.2991/ismge-19.2019.100",
+   "oa": true,
+   "status": "hybrid",
+   "pdf": "https://www.atlantis-press.com/article/125912529.pdf",
+   "land": "https://doi.org/10.2991/ismge-19.2019.100"
+  },
+  "a265781433": {
+   "doi": "10.18334/migration.3.4.41048",
+   "oa": false,
+   "status": "closed",
+   "pdf": null,
+   "land": null
+  },
+  "a823358380": {
+   "doi": "10.1109/HISTHIGHTECH57099.2022.10038222",
+   "oa": false,
+   "status": "closed",
+   "pdf": null,
+   "land": null
+  },
+  "a427814703": {
+   "doi": "10.5220/0000152300003305",
+   "oa": false,
+   "status": "closed",
+   "pdf": null,
+   "land": null
+  },
+  "a332488470": {
+   "doi": "10.2991/aebmr.k.200312.384",
+   "oa": true,
+   "status": "hybrid",
+   "pdf": null,
+   "land": "https://doi.org/10.2991/aebmr.k.200312.384"
+  },
+  "b412379523": {
+   "doi": "10.46916/25112021-978-5-00174-380-4",
+   "oa": false,
+   "status": "closed",
+   "pdf": null,
+   "land": null
+  },
+  "a698557485": {
+   "doi": "10.5281/ZENODO.13918005",
+   "oa": true,
+   "status": "green",
+   "pdf": "https://journal.asu.ru/biol/article/download/15971/13580",
+   "land": "http://journal.asu.ru/biol/article/view/15971"
+  },
+  "a763544199": {
+   "doi": "10.37828/em.2020.27.2",
+   "oa": true,
+   "status": "gold",
+   "pdf": null,
+   "land": "https://doi.org/10.37828/em.2020.27.2"
+  },
+  "a110797326": {
+   "doi": "10.1023/A:1005207202143",
+   "oa": false,
+   "status": "closed",
+   "pdf": null,
+   "land": null
+  }
+ },
+ "istina_files": {
+  "a157345881": [
+   {
+    "label": "Полный текст",
+    "path": "/download/235360216/1xOAyb:P7Gsx7CkNSLgZRiFt55QbJY4z3jP87V380vOYvJGyb0/"
+   }
+  ],
+  "b763178679": [
+   {
+    "label": "Полный текст",
+    "path": "/download/763186189/1xOAzF:61PDngYoUzvQWYO4HLZPjd6fiBP6_Jl9G9VrlHWxZ80/"
+   }
+  ],
+  "b655119917": [
+   {
+    "label": "XX_XXI_1.pdf",
+    "path": "/download/741667992/1xOAzF:a3Z-_7u82Rc8r6QZCZncWisaZudoLthYKZhz7i87sVE/"
+   }
+  ],
+  "b254620809": [
+   {
+    "label": "Полный текст",
+    "path": "/download/256336432/1xOAzJ:t9t5ILWQAPYUsSJjsx1-JorwLW2vX11yDCnSpoT1rT0/"
+   }
+  ],
+  "b156323868": [
+   {
+    "label": "Краткий текст",
+    "path": "/download/156850703/1xOAzJ:IxpOl5wOSJpqWeOYIZ18t6eoaR2al-dNt3H1TXKXGhQ/"
+   }
+  ],
+  "a460463447": [
+   {
+    "label": "UiK_No_3_Primenenie_mehanizma_obligatsij_dlya_finansirovani…",
+    "path": "/download/618389609/1xOAzW:BaLjLLo1wjHAq5eR4q7JEtTeul9UYnl7LGtua_l3UTo/"
+   }
+  ],
+  "a424832114": [
+   {
+    "label": "AD_ALTA_ChEShSKAYa_VOS.pdf",
+    "path": "/download/424832134/1xOAzY:NegmQeWky64Xff-dWNI8V4Pb34vSh0X8GWdimzWb4Pc/"
+   }
+  ],
+  "a290558681": [
+   {
+    "label": "Полный текст",
+    "path": "/download/290558896/1xOAzb:1udb6vBbaXBc7ipdKi9nXCCyZZ1ysY4VkG6e86F1s2s/"
+   }
+  ],
+  "a427814703": [
+   {
+    "label": "Журнал",
+    "path": "/download/427814715/1xOAzh:Yx4YzYGMNEdlFT8FtrKXW4boITZUa8MOiiaOxvcDV9Y/"
+   }
+  ],
+  "b248648146": [
+   {
+    "label": "Полный текст",
+    "path": "/download/290558901/1xOB00:qKWKYE0wot38vNBOmhc7NOx0pX7izhyOU7ITZ1HuIT4/"
+   }
+  ],
+  "a502881503": [
+   {
+    "label": "Полный текст",
+    "path": "/download/502881518/1xOB01:Auk3pXykjtidUVoo_RRnR1CappGmel_wD8i8HjAhTD0/"
+   }
+  ],
+  "b499327079": [
+   {
+    "label": "Полный текст",
+    "path": "/download/773185512/1xOB0E:7TfwNYkfTvf1qGRuqIJ-8jUo1peHMcynyFWVnKLNnYc/"
+   }
+  ]
+ }
+}

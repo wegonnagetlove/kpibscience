@@ -274,6 +274,19 @@ for k, v in NOTES.items():
         works[k]["verify"] = v
 if "streltsov-diss-2004" in works:
     works["streltsov-diss-2004"]["level"] = 2
+# Полные тексты: КиберЛенинка, открытый доступ по DOI (OpenAlex), файлы в ИСТИНА
+ft = json.load(open("fulltext.json")) if os.path.exists("fulltext.json") else {}
+for k, v in ft.get("cyberleninka", {}).items():
+    if k in works:
+        base = "https://cyberleninka.ru" + v["link"]
+        works[k]["links"].insert(0, {"label": "PDF · КиберЛенинка", "url": base + "/pdf", "kind": "pdf"})
+        works[k]["links"].insert(1, {"label": "Статья на КиберЛенинке", "url": base, "kind": "fulltext"})
+for k, v in ft.get("openalex", {}).items():
+    if k in works and v.get("pdf") and not any(l["url"] == v["pdf"] for l in works[k]["links"]):
+        works[k]["links"].insert(0, {"label": "PDF · открытый доступ", "url": v["pdf"], "kind": "pdf"})
+for k in ft.get("istina_files", {}):
+    if k in works:
+        works[k]["istinaFile"] = True
 out = [works[k] for k in order]
 from collections import Counter
 print("works", len(out))
@@ -281,6 +294,7 @@ print("levels", sorted(Counter(w["level"] for w in out).items()))
 print("types", Counter(w["type"] for w in out))
 print("with direct links", sum(1 for w in out if w["links"]), "doi", sum(1 for w in out if any(l["kind"].startswith("doi") for l in w["links"])))
 print("multi-author dept", sum(1 for w in out if len(w["authors"]) > 1))
+print("pdf", sum(1 for w in out if any(l["kind"] == "pdf" for l in w["links"])), "istina files", sum(1 for w in out if w.get("istinaFile")))
 with open(os.path.join(HERE, "..", "data", "works.js"), "w", encoding="utf-8") as fh:
     fh.write("/* Выгрузка из ИСТИНА МГУ, собрана tools/build.py. Не править вручную. */\nwindow.KPIB_ISTINA = ")
     fh.write(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
