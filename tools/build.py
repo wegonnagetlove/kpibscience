@@ -277,6 +277,6 @@ print("types", Counter(w["type"] for w in out))
 print("with direct links", sum(1 for w in out if w["links"]), "doi", sum(1 for w in out if any(l["kind"].startswith("doi") for l in w["links"])))
 print("multi-author dept", sum(1 for w in out if len(w["authors"]) > 1))
 with open(os.path.join(HERE, "..", "data", "works.js"), "w", encoding="utf-8") as fh:
-    fh.write("/* Выгрузка из ИСТИНА МГУ, собрана build/build.py. Не править вручную. */\nwindow.KPIB_ISTINA = ")
+    fh.write("/* Выгрузка из ИСТИНА МГУ, собрана tools/build.py. Не править вручную. */\nwindow.KPIB_ISTINA = ")
     fh.write(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
     fh.write(";\n")
