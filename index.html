@@ -2,105 +2,70 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Масштаб исследований кафедры компьютерного права и информационной безопасности</title>
-<meta name="description" content="Карта научных работ сотрудников кафедры компьютерного права и информационной безопасности ВШГА МГУ: от единицы данных до космоса.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Атлас исследований кафедры компьютерного права и информационной безопасности</title>
+<meta name="description" content="Атлас научных работ сотрудников кафедры компьютерного права и информационной безопасности ВШГА МГУ: кафедра в центре, девять орбит от данных до космоса.">
+<meta name="theme-color" content="#000000">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=PT+Serif:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Jura:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 
-<header class="nav">
-  <nav class="nav-l" aria-label="Разделы">
-    <a href="#map">Вселенная</a>
-    <a href="#works">Работы</a>
-    <a href="#about">О карте</a>
-    <a href="#sources">Источники</a>
-  </nav>
-  <a class="mark" href="#top" aria-label="В начало"><span></span></a>
-  <nav class="nav-r" aria-label="Внешние ссылки">
-    <a href="https://istina.msu.ru/" target="_blank" rel="noopener">ИСТИНА</a>
-    <a href="https://audit.msu.ru/about/kafedra-kompyuternogo-prava-i-informatsionnoj-bezopasnosti/" target="_blank" rel="noopener">Кафедра</a>
-  </nav>
-</header>
+<canvas id="sky" tabindex="0" aria-label="Атлас: кафедра в центре, работы на девяти орбитах"></canvas>
 
-<section class="hero" id="top">
-  <h1>Масштаб исследований</h1>
-  <p class="sub">Кафедра компьютерного права и информационной безопасности</p>
-</section>
+<div class="tools">
+  <button class="ico" id="btnFilter" type="button" aria-label="Фильтры" title="Фильтры">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>
+  </button>
+  <button class="ico" id="btnInfo" type="button" aria-label="О проекте" title="О проекте">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>
+  </button>
+  <button class="ico" id="btnSearch" type="button" aria-label="Поиск" title="Поиск">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
+  </button>
+</div>
 
-<section class="mapwrap" id="map" aria-label="Карта вселенной исследований">
-  <canvas id="sky" tabindex="0" aria-label="Карта: звёзды-работы в созвездиях"></canvas>
+<div class="topright">
+  <div class="count" id="count"></div>
+  <button class="ico" id="btnFit" type="button" aria-label="Вся система" title="Вся система">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h16M15 8l4 4-4 4M3 7v10"/></svg>
+  </button>
+</div>
 
-  <div class="map-top">
-    <input id="search" type="search" placeholder="Поиск звезды: заглавие, журнал, год" aria-label="Поиск">
-    <div id="people" class="chips"></div>
-    <span class="found" id="found"></span>
+<div class="time">
+  <div class="year" id="year"></div>
+  <div class="speed" id="speed"></div>
+  <div class="tctl">
+    <button class="ico" id="btnRew" type="button" aria-label="С начала" title="Проиграть историю с первой работы">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M11 6l-7 6 7 6zM20 6l-7 6 7 6z"/></svg>
+    </button>
+    <button class="ico" id="btnPlay" type="button" aria-label="Пауза" title="Пауза">
+      <svg id="icoStop" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="14" height="14"/></svg>
+      <svg id="icoPlay" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" hidden><path d="M7 4l13 8-13 8z"/></svg>
+    </button>
+    <button class="ico" id="btnFwd" type="button" aria-label="Быстрее" title="Быстрее">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6l7 6-7 6zM13 6l7 6-7 6z"/></svg>
+    </button>
   </div>
+</div>
 
-  <nav class="const" id="const" aria-label="Созвездия"></nav>
-
-  <div class="hud">
-    <div class="hud-name" id="hudName">Вся вселенная кафедры</div>
-    <div class="hud-hint" id="hudHint"></div>
-  </div>
-
-  <div class="zoom">
-    <button id="zIn" type="button" aria-label="Приблизить">+</button>
-    <button id="zOut" type="button" aria-label="Отдалить">−</button>
-    <button id="zAll" type="button" aria-label="Вся карта" class="all">Вся карта</button>
-  </div>
-
-  <div class="legend" id="legend"></div>
-  <div id="tip" class="tip" hidden></div>
-  <div id="hint" class="hint">Перетаскивайте карту. Нажмите на неё и вращайте колесо мыши, чтобы приблизить созвездие.</div>
-</section>
-<p class="photo-credit" id="photoCredit"></p>
-
-<section class="gallery-sec">
-  <div class="gallery" id="gallery"></div>
-  <p class="photo-credit" id="galleryCredit"></p>
-</section>
-
-<section class="sec" id="about">
-  <aside class="sec-aside">
-    <h3>Кафедра компьютерного права и информационной безопасности</h3>
-    <p>Высшая школа государственного аудита (факультет)<br>МГУ имени М.В. Ломоносова</p>
-    <p>Москва, Ленинские горы, д. 1, стр. 13</p>
-    <p id="stats"></p>
-  </aside>
-  <div class="sec-main" id="aboutBody"></div>
-</section>
-
-<section class="sec" id="works">
-  <aside class="sec-aside">
-    <h3>Работы</h3>
-    <p>Список совпадает с картой: учитываются поиск и выбранные авторы.</p>
-  </aside>
-  <div class="sec-main">
-    <h2>Работы по уровням</h2>
-    <div id="list"></div>
-  </div>
-</section>
-
-<section class="sec" id="sources">
-  <aside class="sec-aside">
-    <h3>Источники</h3>
-    <p>Данные проверены <span id="checked"></span></p>
-  </aside>
-  <div class="sec-main" id="sourcesBody"></div>
-</section>
-
-<footer class="foot">
-  <p>Масштаб исследований. Кафедра компьютерного права и информационной безопасности ВШГА МГУ имени М.В. Ломоносова</p>
-</footer>
+<div id="tip" class="tip" hidden></div>
 
 <aside id="panel" class="panel" aria-hidden="true">
+  <i class="corner c1"></i><i class="corner c2"></i>
   <button class="close" id="panelClose" type="button" aria-label="Закрыть">×</button>
   <div id="panelBody"></div>
 </aside>
+
+<div id="modal" class="modal" hidden>
+  <div class="modal-box">
+    <i class="corner c1"></i><i class="corner c2"></i>
+    <button class="close" id="modalClose" type="button" aria-label="Закрыть">×</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
 
 <script src="data/research.js"></script>
 <script src="data/works.js"></script>

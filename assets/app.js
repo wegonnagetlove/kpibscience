@@ -1,25 +1,31 @@
 (function () {
   "use strict";
 
+  /* ================= ДАННЫЕ ================= */
   var D = window.KPIB;
   var LEVELS = D.LEVELS;
   var MIN_L = LEVELS[0].level;
+  var COLORS = { "-3": "#a3acb8", "-2": "#e0b34a", "-1": "#6f95ec", "0": "#e8743b", "1": "#cfa57a",
+                 "2": "#e9d391", "3": "#7fcadb", "4": "#5f84e0", "5": "#b78ce0" };
   var TYPES = {
-    article:     { name: "Статья в журнале",    color: "#ffffff", r: 2.6 },
-    chapter:     { name: "Статья в сборнике",   color: "#cfd8e6", r: 2.1, ring: true },
-    book:        { name: "Монография, книга",   color: "#e3b873", r: 3.6 },
-    thesis:      { name: "Диссертация",         color: "#d4343a", r: 4.4 },
-    supervision: { name: "Научное руководство", color: "#d4343a", r: 3.2 },
-    talk:        { name: "Тезисы, доклад",      color: "#9cc8ee", r: 2.3 },
-    event:       { name: "Научное мероприятие", color: "#9cc8ee", r: 2.6 }
+    article:     { name: "Статья в журнале",    r: 2.1 },
+    chapter:     { name: "Статья в сборнике",   r: 1.7 },
+    book:        { name: "Монография, книга",   r: 2.8 },
+    thesis:      { name: "Диссертация",         r: 3.6 },
+    supervision: { name: "Научное руководство", r: 2.6 },
+    talk:        { name: "Тезисы, доклад",      r: 1.5 },
+    event:       { name: "Научное мероприятие", r: 1.8 }
   };
+  var TYPE_GROUPS = [["article", "Статьи в журналах"], ["chapter", "Статьи в сборниках"], ["book", "Монографии, книги"],
+                     ["thesis", "Диссертации и руководство", ["supervision"]], ["talk", "Тезисы, доклады, мероприятия", ["event"]]];
 
   var WORKS = D.WORKS.concat((window.KPIB_ISTINA || []).map(function (w) { w.source = "istina"; return w; }));
   var byId = {};
   WORKS.forEach(function (w) { byId[w.id] = w; });
   var people = {};
   D.PEOPLE.forEach(function (p) { people[p.id] = p; });
-  var activePeople = {}, query = "";
+  var years = WORKS.map(function (w) { return w.year; }).filter(Boolean);
+  var MIN_Y = Math.min.apply(null, years), MAX_Y = Math.max.apply(null, years);
 
   var $ = function (s) { return document.querySelector(s); };
   function esc(s) {
@@ -29,598 +35,687 @@
   }
   function norm(s) { return String(s || "").toLowerCase().replace(/ё/g, "е"); }
   function levelInfo(l) { return LEVELS.filter(function (x) { return x.level === l; })[0]; }
+  function lnum(l) { return l - MIN_L + 1; }
   function shortAuthors(w) { return w.authors.map(function (id) { return people[id].short; }).join(", "); }
-  function authorsLine(w) { return w.coauthors ? shortAuthors(w) + "; " + w.coauthors : shortAuthors(w); }
+  function plural(n, a, b, c) {
+    var m10 = n % 10, m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return a;
+    if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return b;
+    return c;
+  }
+  function works(n) { return n + " " + plural(n, "работа", "работы", "работ"); }
   WORKS.forEach(function (w) { w._q = norm(w.title + " " + (w.venue || "") + " " + (w.year || "") + " " + shortAuthors(w)); });
-  function isActive(w) {
-    var keys = Object.keys(activePeople);
-    if (keys.length && !w.authors.some(function (id) { return activePeople[id]; })) return false;
-    if (query && w._q.indexOf(query) < 0) return false;
+  function rng(seed) { return function () { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; }
+  function hexA(hex, a) { var n = parseInt(hex.slice(1), 16); return "rgba(" + (n >> 16) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")"; }
+
+  /* ---------- фильтры ---------- */
+  var offPeople = {}, offTypes = {};
+  function typeGroup(t) {
+    for (var i = 0; i < TYPE_GROUPS.length; i++) {
+      var g = TYPE_GROUPS[i];
+      if (g[0] === t || (g[2] && g[2].indexOf(t) >= 0)) return g[0];
+    }
+    return t;
+  }
+  function passes(w) {
+    if (offTypes[typeGroup(w.type)]) return false;
+    if (Object.keys(offPeople).length && !w.authors.some(function (id) { return !offPeople[id]; })) return false;
     return true;
   }
-  function filtering() { return !!query || Object.keys(activePeople).length > 0; }
 
-  // детерминированный генератор случайных чисел
-  function rng(seed) { return function () { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; }
+  /* ================= СИСТЕМА ================= */
+  var TILT = 0.58;
+  var orbits = LEVELS.map(function (L, i) {
+    var r = rng(500 + i * 31);
+    return {
+      L: L, i: i, color: COLORS[String(L.level)],
+      R: 80 + 74 * i,
+      e: 0.02 + r() * 0.06,
+      w: (r() - 0.5) * 1.2,
+      speed: 0.05 / Math.pow(1 + i * 0.92, 1.5),
+      p0: r() * Math.PI * 2,
+      works: WORKS.filter(function (w) { return w.level === L.level; }).sort(function (a, b) { return (b.year || 0) - (a.year || 0); })
+    };
+  });
+  var orbitOf = {};
+  orbits.forEach(function (o) { orbitOf[o.L.level] = o; });
 
-  /* ================= ВСЕЛЕННАЯ ================= */
-  // Каждый уровень шкалы: созвездие. Созвездия лежат на спиральном рукаве
-  // от центра (кафедра) наружу; чем крупнее уровень, тем больше и дальше созвездие.
-  var SPACING = 15;                     // расстояние между звёздами в мировых единицах
-  var systems = [];
-  (function buildSystems() {
-    var dist = 0, angle = -2.3, prevR = 70;
-    LEVELS.forEach(function (L, i) {
-      var works = WORKS.filter(function (w) { return w.level === L.level; })
-        .sort(function (a, b) { return (a.year || 0) - (b.year || 0); });
-      var core = Math.max(58, Math.sqrt(works.length) * SPACING * 0.62);
-      var R = core * (1 + i * 0.07) + 40;
-      dist += prevR + R + 26;
-      angle += 0.95 - i * 0.025;
-      var sys = { L: L, works: works, R: R, core: core, x: Math.cos(angle) * dist, y: Math.sin(angle) * dist, stars: [] };
-      var rnd = rng(1000 + i * 77);
-      works.forEach(function (w, k) {
-        var rr = core * Math.sqrt((k + 0.5) / Math.max(works.length, 1));
-        var th = k * 2.39996 + rnd() * 0.5;
-        var jitter = SPACING * 0.22;
-        sys.stars.push({
-          w: w,
-          x: sys.x + rr * Math.cos(th) + (rnd() - 0.5) * jitter,
-          y: sys.y + rr * Math.sin(th) + (rnd() - 0.5) * jitter,
-          tw: rnd() * Math.PI * 2
-        });
-      });
-      systems.push(sys);
-      prevR = R;
+  // положение на орбите (в плоскости орбиты, затем наклон к наблюдателю)
+  function orbitPoint(o, theta, k) {
+    k = k || 1;
+    var R = o.R * k, b = R * Math.sqrt(1 - o.e * o.e);
+    var x = R * Math.cos(theta) - R * o.e, y = b * Math.sin(theta);
+    var c = Math.cos(o.w), s = Math.sin(o.w);
+    return [x * c - y * s, (x * s + y * c) * TILT];
+  }
+
+  var bodies = [];
+  orbits.forEach(function (o) {
+    var r = rng(9000 + o.i * 101);
+    o.works.forEach(function (w) {
+      bodies.push({ w: w, o: o, th: r() * Math.PI * 2, k: 1 + (r() - 0.5) * 0.16, sp: o.speed * (0.9 + r() * 0.2), x: 0, y: 0, born: 0 });
     });
-  })();
-  var allStars = [];
-  systems.forEach(function (s) { allStars = allStars.concat(s.stars); });
-  var starOf = {};
-  allStars.forEach(function (s) { starOf[s.w.id] = s; });
+  });
+  var bodyOf = {};
+  bodies.forEach(function (b) { bodyOf[b.w.id] = b; });
 
-  // фоновые звёзды (три слоя для параллакса)
-  var bgStars = [];
-  (function () {
-    var r = rng(42);
-    for (var i = 0; i < 900; i++) {
-      bgStars.push({ x: r(), y: r(), m: r() < 0.08 ? 1.6 : (r() < 0.4 ? 1 : 0.6), a: 0.25 + r() * 0.6, layer: i % 3 });
-    }
-  })();
-
+  /* ================= ХОЛСТ И КАМЕРА ================= */
   var canvas = $("#sky"), ctx = canvas.getContext("2d");
-  var mapwrap = $("#map"), tip = $("#tip");
-  var W = 0, H = 0, DPR = 1;
-  var cam = { x: 0, y: 0, s: 1 }, target = null;
-  var hover = null, selected = null;
+  var W = 0, H = 0, DPR = 1, starsCanvas = null;
+  var cam = { x: 0, y: 0, s: 1 }, camTarget = null, follow = null;
+  var sel = null;             // {kind:"work"|"orbit"|"sun", ...}
+  var hover = null;
 
-  function bounds() {
-    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    systems.forEach(function (s) {
-      minX = Math.min(minX, s.x - s.R); maxX = Math.max(maxX, s.x + s.R);
-      minY = Math.min(minY, s.y - s.R); maxY = Math.max(maxY, s.y + s.R);
-    });
-    minX = Math.min(minX, -90); minY = Math.min(minY, -90); maxX = Math.max(maxX, 90); maxY = Math.max(maxY, 90);
-    return { x: (minX + maxX) / 2, y: (minY + maxY) / 2, w: maxX - minX, h: maxY - minY };
+  function panelW() { return document.body.classList.contains("panel-open") && W > 760 ? Math.min(600, W * 0.44) : 0; }
+  function viewCenter() {
+    var pw = panelW();
+    return [(W - pw) / 2, W <= 760 && document.body.classList.contains("panel-open") ? H * 0.13 : H / 2];
   }
-  function margins() {
-    return W < 700 ? { t: 110, b: 170, l: 60, r: 60 } : { t: 86, b: 96, l: 330, r: 150 };
+  function P(x, y) { var c = viewCenter(); return [c[0] + (x - cam.x) * cam.s, c[1] + (y - cam.y) * cam.s]; }
+  function Pinv(sx, sy) { var c = viewCenter(); return [(sx - c[0]) / cam.s + cam.x, (sy - c[1]) / cam.s + cam.y]; }
+  function fitScale() {
+    var o = orbits[orbits.length - 1], R = o.R * 1.12;
+    var pw = panelW();
+    return Math.min((W - pw - 40) / (2 * R), (H - 120) / (2 * R * TILT + 60));
   }
-  function fitView(b, pad) {
-    pad = pad || 1.08;
-    var m = margins(), aw = Math.max(100, W - m.l - m.r), ah = Math.max(100, H - m.t - m.b);
-    var sc = Math.min(aw / (b.w * pad), ah / (b.h * pad));
-    var cx = m.l + aw / 2, cy = m.t + ah / 2;
-    return { x: b.x - (cx - W / 2) / sc, y: b.y - (cy - H / 2) / sc, s: sc };
-  }
-  function overview() { return fitView(bounds(), 1.1); }
-  function systemView(s) { return fitView({ x: s.x, y: s.y, w: s.R * 2, h: s.R * 2 }, 1.25); }
-
-  function resize() {
-    var r = canvas.getBoundingClientRect();
-    DPR = Math.min(window.devicePixelRatio || 1, 2);
-    W = r.width; H = r.height;
-    canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    draw();
-  }
-  function toScreen(x, y) { return [(x - cam.x) * cam.s + W / 2, (y - cam.y) * cam.s + H / 2]; }
-  function toWorld(sx, sy) { return [(sx - W / 2) / cam.s + cam.x, (sy - H / 2) / cam.s + cam.y]; }
-
-  var MIN_S = 0.05, MAX_S = 9;
+  var MIN_S = 0.05, MAX_S = 40;
   function clampS(s) { return Math.max(MIN_S, Math.min(MAX_S, s)); }
 
-  /* ---------- отрисовка ---------- */
-  var t0 = performance.now();
-  function draw() {
-    if (!W) return;
-    var now = (performance.now() - t0) / 1000;
-    ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = "#03050a"; ctx.fillRect(0, 0, W, H);
-
-    // далёкие звёзды с параллаксом
-    bgStars.forEach(function (b) {
-      var par = [0.02, 0.05, 0.1][b.layer];
-      var x = ((b.x * 2600 - cam.x * par) % 2600 + 2600) % 2600 / 2600 * W;
-      var y = ((b.y * 2600 - cam.y * par) % 2600 + 2600) % 2600 / 2600 * H;
-      ctx.globalAlpha = b.a * 0.75;
-      ctx.fillStyle = "#cfd9ea";
-      ctx.fillRect(x, y, b.m, b.m);
-    });
-    ctx.globalAlpha = 1;
-
-    // туманности созвездий
-    systems.forEach(function (s, i) {
-      var p = toScreen(s.x, s.y), r = s.R * cam.s;
-      if (p[0] + r * 1.6 < 0 || p[0] - r * 1.6 > W || p[1] + r * 1.6 < 0 || p[1] - r * 1.6 > H) return;
-      var hue = [212, 220, 228, 205, 38, 0, 196, 250, 30][i % 9];
-      var g = ctx.createRadialGradient(p[0], p[1], 0, p[0], p[1], r * 1.5);
-      g.addColorStop(0, "hsla(" + hue + ",60%,55%,0.16)");
-      g.addColorStop(0.55, "hsla(" + hue + ",60%,45%,0.06)");
-      g.addColorStop(1, "hsla(" + hue + ",60%,40%,0)");
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(p[0], p[1], r * 1.5, 0, Math.PI * 2); ctx.fill();
-    });
-
-    // спиральный рукав: путь от данных к космосу
-    ctx.strokeStyle = "rgba(255,255,255,0.14)"; ctx.lineWidth = 1; ctx.setLineDash([3, 6]);
-    ctx.beginPath();
-    var c0 = toScreen(0, 0); ctx.moveTo(c0[0], c0[1]);
-    systems.forEach(function (s) { var p = toScreen(s.x, s.y); ctx.lineTo(p[0], p[1]); });
-    ctx.stroke(); ctx.setLineDash([]);
-
-    // орбиты созвездий
-    systems.forEach(function (s) {
-      var p = toScreen(s.x, s.y);
-      ctx.strokeStyle = "rgba(255,255,255,0.16)";
-      ctx.beginPath(); ctx.arc(p[0], p[1], s.R * cam.s, 0, Math.PI * 2); ctx.stroke();
-    });
-
-    // центр: кафедра
-    var c = toScreen(0, 0), cr = Math.max(5, 16 * cam.s);
-    var cg = ctx.createRadialGradient(c[0], c[1], 0, c[0], c[1], cr * 4);
-    cg.addColorStop(0, "rgba(212,52,58,0.55)"); cg.addColorStop(1, "rgba(212,52,58,0)");
-    ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(c[0], c[1], cr * 4, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#d4343a"; ctx.beginPath(); ctx.arc(c[0], c[1], cr, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = "#fff"; ctx.lineWidth = Math.max(1, cr * 0.18);
-    ctx.beginPath(); ctx.arc(c[0], c[1], cr * 0.35, 0, Math.PI * 2); ctx.stroke();
-    label("КАФЕДРА", c[0], c[1] + cr + 16, 13, "#fff", "center", "display");
-
-    // звёзды-работы
-    var filt = filtering();
-    var showTitles = cam.s >= 1.6;
-    var rects = [];
-    function free(x, y, w, h) {
-      for (var i = 0; i < rects.length; i++) {
-        var r = rects[i];
-        if (x < r[0] + r[2] && x + w > r[0] && y < r[1] + r[3] && y + h > r[1]) return false;
-      }
-      rects.push([x, y, w, h]); return true;
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
+    canvas.style.width = W + "px"; canvas.style.height = H + "px";
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    buildStars();
+  }
+  function buildStars() {
+    starsCanvas = document.createElement("canvas");
+    starsCanvas.width = Math.round(W * DPR); starsCanvas.height = Math.round(H * DPR);
+    var c = starsCanvas.getContext("2d"); c.setTransform(DPR, 0, 0, DPR, 0, 0);
+    c.fillStyle = "#000"; c.fillRect(0, 0, W, H);
+    // млечный путь
+    var r = rng(7);
+    for (var i = 0; i < 60; i++) {
+      var t = r(), x = t * W, y = H * (0.15 + 0.7 * t) + (r() - 0.5) * H * 0.25, rad = 80 + r() * 220;
+      var g = c.createRadialGradient(x, y, 0, x, y, rad);
+      g.addColorStop(0, "rgba(120,140,190,0.035)"); g.addColorStop(1, "rgba(120,140,190,0)");
+      c.fillStyle = g; c.beginPath(); c.arc(x, y, rad, 0, Math.PI * 2); c.fill();
     }
-    allStars.forEach(function (st) {
-      var p = toScreen(st.x, st.y);
-      if (p[0] < -40 || p[0] > W + 300 || p[1] < -40 || p[1] > H + 40) return;
-      var T = TYPES[st.w.type], act = isActive(st.w);
-      var r = Math.max(1.3, T.r * Math.min(Math.max(cam.s, 0.5), 3.2) * 0.9);
-      var twinkle = 0.85 + 0.15 * Math.sin(now * 1.6 + st.tw);
-      var alpha = (filt && !act) ? 0.12 : twinkle;
-      ctx.globalAlpha = alpha;
-      if (!(filt && !act) && r > 1.6) {
-        var gg = ctx.createRadialGradient(p[0], p[1], 0, p[0], p[1], r * 3.2);
-        gg.addColorStop(0, hexA(T.color, filt && act ? 0.55 : 0.32)); gg.addColorStop(1, hexA(T.color, 0));
-        ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(p[0], p[1], r * 3.2, 0, Math.PI * 2); ctx.fill();
+    var n = Math.round(W * H / 1400);
+    for (var j = 0; j < n; j++) {
+      var a = r(); c.globalAlpha = 0.15 + a * 0.6;
+      c.fillStyle = a > 0.97 ? "#dbe6ff" : "#aeb7c6";
+      var sz = a > 0.985 ? 1.6 : (a > 0.8 ? 1 : 0.6);
+      c.fillRect(r() * W, r() * H, sz, sz);
+    }
+    c.globalAlpha = 1;
+  }
+
+  /* ================= ВРЕМЯ ================= */
+  var playing = true, t = 0, yearNow = MAX_Y, histRun = false, SPEEDS = [1, 2, 5, 10], speedIdx = 0;
+  var last = performance.now();
+  function setPlaying(v) {
+    playing = v;
+    $("#icoStop").style.display = v ? "" : "none"; $("#icoPlay").style.display = v ? "none" : "";
+    $("#btnPlay").setAttribute("aria-label", v ? "Пауза" : "Пуск");
+  }
+  function timeLabel() {
+    $("#year").textContent = histRun || yearNow < MAX_Y ? String(Math.floor(yearNow)) : MIN_Y + "–" + MAX_Y;
+    $("#speed").textContent = histRun ? SPEEDS[speedIdx] + " " + plural(SPEEDS[speedIdx], "год", "года", "лет") + " / сек" : "все годы · орбиты движутся";
+  }
+  function visibleNow(w) { return !w.year || w.year <= yearNow + 0.0001; }
+
+  /* ================= ОТРИСОВКА ================= */
+  var labelRects = [];
+  function freeRect(x, y, w, h) {
+    for (var i = 0; i < labelRects.length; i++) {
+      var r = labelRects[i];
+      if (x < r[0] + r[2] && x + w > r[0] && y < r[1] + r[3] && y + h > r[1]) return false;
+    }
+    labelRects.push([x, y, w, h]); return true;
+  }
+  function tag(text, bx, by, color, opts) {
+    opts = opts || {};
+    var fs = opts.size || 12;
+    ctx.font = (opts.weight || 500) + " " + fs + "px Jura, 'Segoe UI', Arial, sans-serif";
+    var tw = ctx.measureText(text).width;
+    var h = fs + 8, skew = 7, x0 = bx + 4, y1 = by - 3, y0 = y1 - h;
+    if (!opts.force && !freeRect(x0, y0, tw + skew + 14, h)) return false;
+    if (opts.force) labelRects.push([x0, y0, tw + skew + 14, h]);
+    ctx.beginPath();
+    ctx.moveTo(x0, y1); ctx.lineTo(x0 + skew, y0); ctx.lineTo(x0 + skew + tw + 12, y0); ctx.lineTo(x0 + skew + tw + 12, y1); ctx.closePath();
+    ctx.fillStyle = "rgba(0,0,0,0.62)"; ctx.fill();
+    ctx.strokeStyle = color; ctx.lineWidth = opts.sel ? 1.5 : 1; ctx.stroke();
+    ctx.fillStyle = opts.textColor || color; ctx.textAlign = "left";
+    ctx.fillText(text, x0 + skew + 6, y1 - 5);
+    return true;
+  }
+
+  function draw() {
+    ctx.drawImage(starsCanvas, 0, 0, W, H);
+    labelRects = [];
+    var selOrbit = sel && (sel.kind === "orbit" ? sel.o : sel.kind === "work" ? sel.b.o : null);
+
+    // орбиты
+    orbits.forEach(function (o) {
+      var isSel = o === selOrbit, N = 220;
+      ctx.beginPath();
+      for (var i = 0; i <= N; i++) {
+        var q = orbitPoint(o, i / N * Math.PI * 2), p = P(q[0], q[1]);
+        if (i === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]);
       }
-      if (T.ring) {
-        ctx.strokeStyle = T.color; ctx.lineWidth = Math.max(1, r * 0.35);
-        ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, Math.PI * 2); ctx.stroke();
-      } else {
-        ctx.fillStyle = T.color; ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, Math.PI * 2); ctx.fill();
-      }
-      if (st === hover || st === selected) {
-        ctx.globalAlpha = 1; ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.arc(p[0], p[1], r + 6, 0, Math.PI * 2); ctx.stroke();
-      }
-      if (showTitles && !(filt && !act) && p[0] > 0 && p[0] < W && p[1] > 0 && p[1] < H) {
-        var txt = (st.w.year ? st.w.year + "  " : "") + st.w.title;
-        var maxc = Math.round(26 + cam.s * 8);
-        if (txt.length > maxc) txt = txt.slice(0, maxc - 1) + "…";
-        ctx.font = "12px 'PT Serif', Georgia, serif";
-        var tw = ctx.measureText(txt).width;
-        if (free(p[0] + r + 6, p[1] - 9, tw + 6, 15)) {
-          ctx.globalAlpha = Math.min(1, (cam.s - 1.6) / 0.8) * 0.92;
-          label(txt, p[0] + r + 7, p[1] + 4, 12, "#e9eef6", "left", "serif");
-        }
-      }
+      if (isSel && sel.kind === "orbit") { ctx.fillStyle = hexA(o.color, 0.08); ctx.fill(); }
+      ctx.strokeStyle = isSel ? o.color : hexA(o.color, 0.55);
+      ctx.lineWidth = isSel ? (sel.kind === "orbit" ? 2.4 : 1.6) : 1;
+      ctx.stroke();
+    });
+
+    // тела-работы
+    var filt = Object.keys(offPeople).length || Object.keys(offTypes).length;
+    var zoomK = Math.min(Math.max(cam.s, 0.35), 4);
+    bodies.forEach(function (b) {
+      var q = orbitPoint(b.o, b.th, b.k); b.x = q[0]; b.y = q[1];
+      if (!visibleNow(b.w)) return;
+      var p = P(b.x, b.y);
+      if (p[0] < -20 || p[0] > W + 20 || p[1] < -20 || p[1] > H + 20) { b.sx = -999; return; }
+      b.sx = p[0]; b.sy = p[1];
+      var ok = passes(b.w);
+      var r = Math.max(1, TYPES[b.w.type].r * zoomK * 0.75);
+      var fresh = b.born ? Math.max(0, 1 - (performance.now() - b.born) / 1400) : 0;
+      ctx.globalAlpha = ok ? 0.95 : 0.12;
+      ctx.fillStyle = b.w.type === "thesis" || b.w.type === "supervision" ? "#ffffff" : hexA(b.o.color, 1);
+      ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, Math.PI * 2); ctx.fill();
+      if (b.w.type === "thesis") { ctx.strokeStyle = b.o.color; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(p[0], p[1], r + 2.5, 0, Math.PI * 2); ctx.stroke(); }
+      if (fresh > 0) { ctx.globalAlpha = fresh; ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(p[0], p[1], r + 10 * (1 - fresh) + 2, 0, Math.PI * 2); ctx.stroke(); }
       ctx.globalAlpha = 1;
     });
 
-    // подписи созвездий (крупные первыми, без наложений)
-    var cc = toScreen(0, 0), ccr = Math.max(5, 16 * cam.s);
-    var lrects = [[cc[0] - 40, cc[1] + ccr + 2, 80, 18]];
-    systems.slice().sort(function (a, b) { return b.R - a.R; }).forEach(function (s) {
-      var p = toScreen(s.x, s.y), r = s.R * cam.s;
-      if (p[0] + r < -100 || p[0] - r > W + 100 || p[1] + r < -100 || p[1] - r > H + 100) return;
-      var fs = Math.max(12, Math.min(34, r * 0.16));
-      var y = p[1] - r - fs * 0.6;
-      var n = s.L.level - MIN_L + 1;
-      var txt = n + "  " + s.L.name.toUpperCase();
-      ctx.font = "500 " + fs + "px Oswald, 'Arial Narrow', Arial, sans-serif";
-      var tw = ctx.measureText(txt).width, box = [p[0] - tw / 2 - 4, y - fs, tw + 8, fs * 1.3];
-      if (lrects.some(function (q) { return box[0] < q[0] + q[2] && box[0] + box[2] > q[0] && box[1] < q[1] + q[3] && box[1] + box[3] > q[1]; })) {
-        y = p[1] + r + fs * 1.2; box[1] = y - fs;
-      }
-      lrects.push(box);
-      label(txt, p[0], y, fs, "#fff", "center", "display");
-      if (fs > 14) label(s.works.length + " " + plural(s.works.length) + " · " + s.L.hint, p[0], y + fs * 0.95, Math.max(11, fs * 0.5), "rgba(255,255,255,0.72)", "center", "italic");
+    // солнце: кафедра
+    var sp = P(0, 0), sr = Math.max(4, Math.min(14, 7 * Math.sqrt(cam.s)));
+    var g = ctx.createRadialGradient(sp[0], sp[1], 0, sp[0], sp[1], sr * 6);
+    g.addColorStop(0, "rgba(255,170,60,0.45)"); g.addColorStop(1, "rgba(255,170,60,0)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sp[0], sp[1], sr * 6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#ffb347"; ctx.beginPath(); ctx.arc(sp[0], sp[1], sr, 0, Math.PI * 2); ctx.fill();
+
+    // линия от солнца к выбранному
+    var selPt = null, selColor = "#fff";
+    if (sel && sel.kind === "work") { selPt = [sel.b.x, sel.b.y]; selColor = sel.b.o.color; }
+    if (sel && sel.kind === "orbit") { var pq = planetPos(sel.o); selPt = pq; selColor = sel.o.color; }
+    if (selPt) {
+      var a = P(selPt[0], selPt[1]);
+      ctx.strokeStyle = selColor; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(sp[0], sp[1]); ctx.lineTo(a[0], a[1]); ctx.stroke();
+    }
+
+    // подписи: солнце, планеты-уровни
+    tag("Кафедра", sp[0], sp[1], "#ffb347", { force: true, sel: sel && sel.kind === "sun", weight: 600 });
+    var edge = [];
+    orbits.forEach(function (o) {
+      var q = planetPos(o), p = P(q[0], q[1]);
+      var on = p[0] > 4 && p[0] < W - panelW() - 4 && p[1] > 4 && p[1] < H - 4;
+      if (!on) { edge.push([o, p]); return; }
+      ctx.fillStyle = o.color; ctx.beginPath(); ctx.arc(p[0], p[1], 3.6, 0, Math.PI * 2); ctx.fill();
+      tag(o.L.name, p[0], p[1], o.color, { force: true, sel: sel && sel.kind === "orbit" && sel.o === o });
+      o.sx = p[0]; o.sy = p[1];
     });
+    edge.forEach(function (e) { edgeMark(e[0], e[1]); });
+
+    // подписи работ при приближении
+    var showWorks = cam.s >= 2;
+    if (sel && sel.kind === "work" && sel.b.sx > -999 && visibleNow(sel.b.w)) {
+      ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(sel.b.sx, sel.b.sy, 7, 0, Math.PI * 2); ctx.stroke();
+      tag(cut(sel.b.w.title, 60), sel.b.sx, sel.b.sy, sel.b.o.color, { force: true, sel: true, textColor: "#fff" });
+    }
+    if (hover && hover.kind === "work" && hover.b.sx > -999 && (!sel || sel.b !== hover.b)) {
+      tag(cut(hover.b.w.title, 60), hover.b.sx, hover.b.sy, "#dee2e6", { force: true });
+    }
+    if (showWorks) {
+      var n = 0;
+      for (var i = 0; i < bodies.length && n < Math.round(20 + cam.s * 8); i++) {
+        var b = bodies[i];
+        if (b.sx === -999 || b.sx == null || !visibleNow(b.w) || !passes(b.w)) continue;
+        if (b.sx < 0 || b.sx > W - panelW() || b.sy < 0 || b.sy > H) continue;
+        if (tag(cut(b.w.title, Math.round(16 + cam.s * 4)), b.sx, b.sy, "rgba(222,226,230,0.3)", { size: 11, textColor: "rgba(222,226,230,0.7)" })) n++;
+      }
+    }
   }
-  function plural(n) {
-    var m10 = n % 10, m100 = n % 100;
-    if (m10 === 1 && m100 !== 11) return "работа";
-    if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return "работы";
-    return "работ";
-  }
-  function label(text, x, y, size, color, align, kind) {
-    ctx.font = kind === "display" ? "500 " + size + "px Oswald, 'Arial Narrow', Arial, sans-serif" :
-      kind === "italic" ? "italic " + size + "px 'Cormorant Garamond', Georgia, serif" : size + "px 'PT Serif', Georgia, serif";
-    ctx.textAlign = align; ctx.fillStyle = color;
-    ctx.shadowColor = "rgba(0,0,0,0.85)"; ctx.shadowBlur = 6;
-    ctx.fillText(text, x, y);
-    ctx.shadowBlur = 0;
-  }
-  function hexA(hex, a) {
-    var n = parseInt(hex.slice(1), 16);
-    return "rgba(" + (n >> 16) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")";
+  function cut(s, n) { return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+  function planetPos(o) { return orbitPoint(o, o.p0 + o.speed * t * 0.6); }
+  function edgeMark(o, p) {
+    var c = viewCenter(), dx = p[0] - c[0], dy = p[1] - c[1];
+    var maxX = W - panelW() - 14, x, y;
+    var k = Math.min(Math.abs((dx > 0 ? maxX - c[0] : c[0] - 14) / (dx || 1e-6)), Math.abs((dy > 0 ? H - 14 - c[1] : c[1] - 14) / (dy || 1e-6)));
+    x = c[0] + dx * k; y = c[1] + dy * k;
+    var ang = Math.atan2(dy, dx);
+    ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+    ctx.fillStyle = hexA(o.color, 0.85);
+    ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-4, -5); ctx.lineTo(-4, 5); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    o.ex = x; o.ey = y; o.sx = null;
   }
 
-  /* ---------- анимация камеры ---------- */
-  var animating = false;
-  function flyTo(v) { target = v; if (!animating) { animating = true; requestAnimationFrame(step); } }
-  function step() {
-    if (target) {
+  /* ================= ЦИКЛ ================= */
+  function frame(now) {
+    var dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (playing) {
+      t += dt;
+      bodies.forEach(function (b) { b.th += b.sp * dt * 0.6; });
+      if (histRun) {
+        var prev = yearNow;
+        yearNow = Math.min(MAX_Y, yearNow + SPEEDS[speedIdx] * dt);
+        if (Math.floor(yearNow) !== Math.floor(prev)) {
+          var y = Math.floor(yearNow);
+          bodies.forEach(function (b) { if (b.w.year === y) b.born = now; });
+        }
+        if (yearNow >= MAX_Y) { histRun = false; }
+        timeLabel(); updateCount();
+      }
+    }
+    if (follow && !drag) {
+      var fp = follow();
+      if (fp) { cam.x += (fp[0] - cam.x) * 0.08; cam.y += (fp[1] - cam.y) * 0.08; }
+    }
+    if (camTarget) {
       var k = 0.12;
-      cam.x += (target.x - cam.x) * k; cam.y += (target.y - cam.y) * k;
-      cam.s *= Math.pow(target.s / cam.s, k);
-      if (Math.abs(target.x - cam.x) * cam.s < 0.5 && Math.abs(target.y - cam.y) * cam.s < 0.5 && Math.abs(Math.log(target.s / cam.s)) < 0.004) {
-        cam.x = target.x; cam.y = target.y; cam.s = target.s; target = null;
-      }
+      cam.x += (camTarget.x - cam.x) * k; cam.y += (camTarget.y - cam.y) * k;
+      cam.s *= Math.pow(camTarget.s / cam.s, k);
+      if (Math.abs(Math.log(camTarget.s / cam.s)) < 0.003 && Math.hypot(camTarget.x - cam.x, camTarget.y - cam.y) * cam.s < 0.5) camTarget = null;
     }
-    draw(); updateHud();
-    requestAnimationFrame(step); // звёзды мерцают постоянно
+    draw();
+    requestAnimationFrame(frame);
   }
 
-  /* ---------- HUD ---------- */
-  function nearestSystem() {
-    var best = null, bd = Infinity;
-    systems.forEach(function (s) {
-      var d = Math.hypot(s.x - cam.x, s.y - cam.y) - s.R;
-      if (d < bd) { bd = d; best = s; }
+  function updateCount() {
+    var n = WORKS.filter(function (w) { return visibleNow(w) && passes(w); }).length;
+    $("#count").textContent = works(n) + " · 9 орбит";
+  }
+
+  /* ================= ВЫБОР ================= */
+  function fitAll() { follow = null; camTarget = { x: 0, y: 0, s: fitScale() }; }
+  function selectWork(w, fly) {
+    var b = bodyOf[w.id]; if (!b) return;
+    if (w.year && w.year > yearNow) { yearNow = MAX_Y; histRun = false; timeLabel(); updateCount(); }
+    sel = { kind: "work", b: b };
+    openPanel(renderWork(w), b.o.color);
+    follow = function () { return [b.x, b.y]; };
+    if (fly !== false) camTarget = { x: b.x, y: b.y, s: Math.max(cam.s, 3.2) };
+    setHash(w.id);
+  }
+  function selectOrbit(o) {
+    sel = { kind: "orbit", o: o };
+    openPanel(renderOrbit(o), o.color);
+    follow = null;
+    var s = Math.min((W - panelW() - 60) / (2 * o.R * 1.1), (H - 140) / (2 * o.R * TILT * 1.1 + 40));
+    camTarget = { x: 0, y: 0, s: clampS(s) };
+    setHash("orbit-" + lnum(o.L.level));
+  }
+  function selectSun() {
+    sel = { kind: "sun" };
+    openPanel(renderSun(), "#ffb347");
+    follow = null;
+    setHash("kafedra");
+  }
+  function deselect() { sel = null; follow = null; closePanel(); }
+  function setHash(h) { try { history.replaceState(null, "", "#" + h); } catch (e) {} }
+
+  /* ================= ПАНЕЛЬ ================= */
+  var panel = $("#panel");
+  function openPanel(html, color) {
+    panel.style.setProperty("--pc", color);
+    $("#panelBody").innerHTML = html;
+    panel.scrollTop = 0;
+    panel.classList.add("is-open"); panel.setAttribute("aria-hidden", "false");
+    document.body.classList.add("panel-open");
+  }
+  function closePanel() {
+    panel.classList.remove("is-open"); panel.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("panel-open");
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+  }
+  $("#panelClose").addEventListener("click", deselect);
+
+  function head(title, kind) {
+    return '<div class="p-head' + (title.length > 60 ? " long" : "") + '"><h2>' + esc(title) + '</h2><span class="kind">' + esc(kind) + "</span></div>";
+  }
+  function orbitPill(o) {
+    return '<a class="pill" data-orbit="' + o.L.level + '"><i style="background:' + o.color + '"></i>' + lnum(o.L.level) + " · " + esc(o.L.name) + "</a>";
+  }
+  function workRow(w) {
+    return '<div class="li" data-work="' + esc(w.id) + '"><div class="ly">' + esc(w.year || "") + '</div><div><div class="lt">' + esc(w.title) +
+      '</div><div class="la">' + esc(shortAuthors(w)) + " · " + esc(TYPES[w.type].name) + "</div></div></div>";
+  }
+  function histogram(list) {
+    var counts = {}, max = 0;
+    list.forEach(function (w) { if (w.year) { counts[w.year] = (counts[w.year] || 0) + 1; max = Math.max(max, counts[w.year]); } });
+    var bars = "";
+    for (var y = MIN_Y; y <= MAX_Y; y++) bars += '<span title="' + y + ": " + (counts[y] || 0) + '" style="height:' + ((counts[y] || 0) / (max || 1) * 100) + '%"></span>';
+    return '<div class="bars">' + bars + '</div><div class="bars-x"><span>' + MIN_Y + "</span><span>" + MAX_Y + "</span></div>";
+  }
+
+  function renderWork(w) {
+    var o = orbitOf[w.level];
+    var authors = w.authors.map(function (id) {
+      var p = people[id];
+      return p.profile ? '<a class="pill" href="' + esc(p.profile) + '" target="_blank" rel="noopener">' + esc(p.name) + " ↗</a>" : '<span class="pill">' + esc(p.name) + "</span>";
+    }).join("");
+    var links = "";
+    if (w.istina) links += '<a class="pill" href="' + esc(w.istina) + '" target="_blank" rel="noopener">' + (w.istinaKind === "record" ? "Запись в ИСТИНА МГУ" : "Профиль в ИСТИНА МГУ") + " ↗</a>";
+    (w.links || []).forEach(function (l) {
+      var lbl = l.kind === "doi" ? l.label : l.kind === "doi-crossref" ? l.label + " (Crossref)" : l.label;
+      links += '<a class="pill" href="' + esc(l.url) + '" target="_blank" rel="noopener">' + esc(lbl) + " ↗</a>";
     });
-    return best;
-  }
-  var lastHud = "";
-  function updateHud() {
-    var ov = overview();
-    var key, s = null;
-    if (cam.s < ov.s * 1.6) key = "all"; else { s = nearestSystem(); key = s ? s.L.level : "all"; }
-    if (key === lastHud) return;
-    lastHud = key;
-    Array.prototype.forEach.call(document.querySelectorAll(".const button"), function (b) { b.classList.toggle("is-on", String(b.dataset.l) === String(key)); });
-    if (key === "all") {
-      $("#hudName").textContent = "Вся вселенная кафедры";
-      $("#hudHint").textContent = WORKS.length + " работ в девяти созвездиях";
-    } else {
-      $("#hudName").textContent = s.L.name;
-      $("#hudHint").textContent = s.works.length + " " + plural(s.works.length) + " · " + s.L.hint;
+    if (w.source !== "istina" && D.SOURCES[w.source]) {
+      var s = D.SOURCES[w.source];
+      links += '<a class="pill" href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(cut(s.title, 50)) + " ↗</a>";
     }
-    setPhoto(key === "all" ? null : s.L.level);
+    var near = o.works.filter(function (x) { return x !== w; })
+      .sort(function (a, b) { return Math.abs((a.year || 0) - (w.year || 0)) - Math.abs((b.year || 0) - (w.year || 0)); }).slice(0, 8);
+    return head(w.title, TYPES[w.type].name) +
+      "<h3>Ключевые сведения</h3><dl class=\"facts\">" +
+      "<dt>год</dt><dd>" + esc(w.year || "не указан") + "</dd>" +
+      "<dt>авторы с кафедры</dt><dd>" + authors + "</dd>" +
+      (w.coauthors ? "<dt>соавторы</dt><dd>" + esc(w.coauthors) + "</dd>" : "") +
+      (w.venue ? "<dt>издание</dt><dd>" + esc(w.venue) + "</dd>" : "") +
+      "<dt>орбита</dt><dd>" + orbitPill(o) + "</dd>" +
+      "<dt>объект исследования</dt><dd>" + esc(o.L.hint) + "</dd>" +
+      "<dt>источники</dt><dd>" + (links || "нет") + "</dd>" +
+      "</dl>" +
+      "<h3>Библиографическая запись</h3><div class=\"gost\">" + esc(w.gost) + '</div><button class="copy" type="button" data-copy="' + esc(w.id) + '">Скопировать</button>' +
+      (w.verify ? '<h3>Требует сверки</h3><div class="warn">' + esc(w.verify) + "</div>" : "") +
+      "<h3>Соседи по орбите</h3><div class=\"list\">" + near.map(workRow).join("") + "</div>";
   }
 
-  /* ---------- управление ---------- */
-  var mapActive = false;
-  function setActive(v) { mapActive = v; mapwrap.classList.toggle("is-active", v); }
-  mapwrap.addEventListener("mouseleave", function () { setActive(false); hover = null; tip.hidden = true; });
-
-  function zoomAt(sx, sy, factor) {
-    var before = toWorld(sx, sy);
-    var ns = clampS((target ? target.s : cam.s) * factor);
-    target = null;
-    cam.s = ns;
-    var after = toWorld(sx, sy);
-    cam.x += before[0] - after[0]; cam.y += before[1] - after[1];
+  function renderOrbit(o, all) {
+    var list = o.works;
+    var byAuthor = {};
+    list.forEach(function (w) { w.authors.forEach(function (a) { byAuthor[a] = (byAuthor[a] || 0) + 1; }); });
+    var byType = {};
+    list.forEach(function (w) { var g = typeGroup(w.type); byType[g] = (byType[g] || 0) + 1; });
+    var ys = list.map(function (w) { return w.year; }).filter(Boolean);
+    var photos = (D.PHOTOS || []).filter(function (ph) { return ph.levels.indexOf(o.L.level) >= 0; });
+    var shown = all ? list : list.slice(0, 30);
+    return head(o.L.name, "орбита " + lnum(o.L.level)) +
+      "<h3>Ключевые сведения</h3><dl class=\"facts\">" +
+      "<dt>объект исследования</dt><dd>" + esc(o.L.hint) + "</dd>" +
+      "<dt>работ на орбите</dt><dd>" + list.length + "</dd>" +
+      (ys.length ? "<dt>годы</dt><dd>" + Math.min.apply(null, ys) + "–" + Math.max.apply(null, ys) + "</dd>" : "") +
+      "<dt>авторы</dt><dd>" + Object.keys(byAuthor).sort(function (a, b) { return byAuthor[b] - byAuthor[a]; })
+        .map(function (a) { return '<span class="pill">' + esc(people[a].short) + " · " + byAuthor[a] + "</span>"; }).join("") + "</dd>" +
+      "<dt>виды работ</dt><dd>" + TYPE_GROUPS.filter(function (g) { return byType[g[0]]; })
+        .map(function (g) { return '<span class="pill">' + esc(g[1]) + " · " + byType[g[0]] + "</span>"; }).join("") + "</dd>" +
+      "<dt>соседние орбиты</dt><dd>" + orbits.filter(function (x) { return Math.abs(x.i - o.i) === 1; }).map(orbitPill).join("") + "</dd>" +
+      "</dl>" +
+      "<h3>Работы по годам</h3>" + histogram(list) +
+      (photos.length ? "<h3>Галерея</h3><div class=\"gallery\">" + photos.map(function (ph) {
+        return '<figure><img src="' + esc(ph.src) + '" alt="' + esc(ph.caption) + '" loading="lazy"><figcaption>' + esc(ph.caption) + "</figcaption></figure>";
+      }).join("") + '</div><p class="plain" style="color:var(--dim);margin-top:8px">' + esc(D.photoCredit || "") + "</p>" : "") +
+      "<h3>Работы</h3><div class=\"list\">" + shown.map(workRow).join("") + "</div>" +
+      (shown.length < list.length ? '<button class="more" type="button" data-allorbit="' + o.L.level + '">Показать все ' + list.length + "</button>" : "");
   }
-  canvas.addEventListener("wheel", function (e) {
-    if (!mapActive) { showHint(); return; }
-    e.preventDefault();
-    var r = canvas.getBoundingClientRect();
-    var d = e.deltaY * (e.deltaMode === 1 ? 16 : 1);
-    zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-d * 0.0016));
-  }, { passive: false });
 
-  var ptrs = {}, dragStart = null, pinch = null, moved = false;
-  canvas.addEventListener("pointerdown", function (e) {
-    setActive(true); hideHint();
-    canvas.setPointerCapture(e.pointerId);
-    ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
-    target = null; moved = false;
-    var ids = Object.keys(ptrs);
-    if (ids.length === 1) dragStart = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y };
-    if (ids.length === 2) {
-      var a = ptrs[ids[0]], b = ptrs[ids[1]];
-      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), s: cam.s };
+  function renderSun() {
+    var staff = D.PEOPLE.map(function (p) {
+      var n = WORKS.filter(function (w) { return w.authors.indexOf(p.id) >= 0; }).length;
+      return "<dt>" + esc(p.name) + "</dt><dd>" + esc(p.role) + "<br>" + works(n) +
+        (p.profile ? ' <a class="pill" href="' + esc(p.profile) + '" target="_blank" rel="noopener">ИСТИНА ↗</a>' : "") + "</dd>";
+    }).join("");
+    return head("Кафедра", "центр системы") +
+      '<p class="plain" style="margin-top:16px">' + esc(D.department.name) + ". " + esc(D.department.faculty) + ", " + esc(D.department.university) + ".</p>" +
+      "<h3>Сотрудники</h3><dl class=\"facts\">" + staff + "</dl>" +
+      "<h3>Орбиты</h3><div>" + orbits.map(function (o) { return orbitPill(o).replace("</a>", " · " + o.works.length + "</a>"); }).join("") + "</div>" +
+      "<h3>Все работы по годам</h3>" + histogram(WORKS) +
+      '<p class="plain" style="margin-top:14px"><a class="pill" href="' + esc(D.department.url) + '" target="_blank" rel="noopener">Страница кафедры ↗</a></p>';
+  }
+
+  panel.addEventListener("click", function (e) {
+    var a = e.target.closest("[data-orbit]");
+    if (a) { e.preventDefault(); selectOrbit(orbitOf[a.dataset.orbit]); return; }
+    var r = e.target.closest("[data-work]");
+    if (r) { selectWork(byId[r.dataset.work]); return; }
+    var m = e.target.closest("[data-allorbit]");
+    if (m) { var o = orbitOf[m.dataset.allorbit]; $("#panelBody").innerHTML = renderOrbit(o, true); return; }
+    var c = e.target.closest("[data-copy]");
+    if (c) {
+      var w = byId[c.dataset.copy];
+      try { navigator.clipboard.writeText(w.gost).then(function () { c.textContent = "Скопировано"; }, function () { c.textContent = "Выделите текст вручную"; }); }
+      catch (err) { c.textContent = "Выделите текст вручную"; }
     }
   });
+
+  /* ================= МОДАЛЬНЫЕ ОКНА ================= */
+  var modal = $("#modal"), modalKind = null;
+  function openModal(kind, html) {
+    modalKind = kind;
+    $("#modalBody").innerHTML = html;
+    modal.hidden = false;
+    ["btnFilter", "btnInfo", "btnSearch"].forEach(function (id) { $("#" + id).classList.toggle("is-on", id === { filter: "btnFilter", info: "btnInfo", search: "btnSearch" }[kind]); });
+  }
+  function closeModal() {
+    modal.hidden = true; modalKind = null;
+    ["btnFilter", "btnInfo", "btnSearch"].forEach(function (id) { $("#" + id).classList.remove("is-on"); });
+    canvas.focus();
+  }
+  $("#modalClose").addEventListener("click", closeModal);
+  modal.addEventListener("click", function (e) { if (e.target === modal) closeModal(); });
+
+  // поиск
+  function openSearch() {
+    openModal("search", head("Поиск", "по заглавию, изданию, году, автору") +
+      '<input type="search" id="q" placeholder="Например: персональные данные, 2019, Стрельцов" autocomplete="off"><div id="res"></div>');
+    var q = $("#q"); q.focus();
+    q.addEventListener("input", function () { runSearch(q.value); });
+    runSearch("");
+  }
+  function runSearch(v) {
+    var s = norm(v.trim()), html = "";
+    var os = orbits.filter(function (o) { return !s || norm(o.L.name + " " + o.L.hint).indexOf(s) >= 0; });
+    if (os.length) html += '<div class="res-h">Орбиты</div><div>' + os.map(orbitPill).join("") + "</div>";
+    if (s) {
+      var ws = WORKS.filter(function (w) { return w._q.indexOf(s) >= 0; });
+      html += '<div class="res-h">Работы: ' + ws.length + "</div><div class=\"list\">" + ws.slice(0, 80).map(workRow).join("") + "</div>";
+      if (ws.length > 80) html += '<p class="plain" style="color:var(--dim)">Показаны первые 80. Уточните запрос.</p>';
+    }
+    $("#res").innerHTML = html;
+  }
+  modal.addEventListener("click", function (e) {
+    var a = e.target.closest("[data-orbit]");
+    if (a) { e.preventDefault(); closeModal(); selectOrbit(orbitOf[a.dataset.orbit]); return; }
+    var r = e.target.closest("[data-work]");
+    if (r) { closeModal(); selectWork(byId[r.dataset.work]); }
+  });
+
+  // фильтры
+  function openFilter() {
+    var ppl = D.PEOPLE.map(function (p) {
+      var n = WORKS.filter(function (w) { return w.authors.indexOf(p.id) >= 0; }).length;
+      return '<label class="chk"><input type="checkbox" data-p="' + p.id + '"' + (offPeople[p.id] ? "" : " checked") + "> " + esc(p.name) + "<small>" + n + "</small></label>";
+    }).join("");
+    var tps = TYPE_GROUPS.map(function (g) {
+      var n = WORKS.filter(function (w) { return typeGroup(w.type) === g[0]; }).length;
+      return '<label class="chk"><input type="checkbox" data-t="' + g[0] + '"' + (offTypes[g[0]] ? "" : " checked") + "> " + esc(g[1]) + "<small>" + n + "</small></label>";
+    }).join("");
+    openModal("filter", head("Фильтры", "что показывать на орбитах") +
+      '<div class="res-h">Авторы</div>' + ppl + '<div class="res-h">Виды работ</div>' + tps);
+    $("#modalBody").addEventListener("change", function (e) {
+      var i = e.target;
+      if (i.dataset.p) { if (i.checked) delete offPeople[i.dataset.p]; else offPeople[i.dataset.p] = true; }
+      if (i.dataset.t) { if (i.checked) delete offTypes[i.dataset.t]; else offTypes[i.dataset.t] = true; }
+      updateCount();
+    });
+  }
+
+  // о проекте
+  function openInfo() {
+    var srcs = Object.keys(D.SOURCES).map(function (k) {
+      var s = D.SOURCES[k];
+      return "<li>" + esc(s.title) + ". — Текст : электронный. — URL: <a href=\"" + esc(s.url) + "\" target=\"_blank\" rel=\"noopener\">" + esc(s.url) +
+        "</a> (дата обращения: " + esc(D.checkedAt) + ")." + (s.primary ? "" : " Вторичный источник.") + "</li>";
+    }).join("");
+    var withDoi = WORKS.filter(function (w) { return (w.links || []).some(function (l) { return l.kind.indexOf("doi") === 0; }); }).length;
+    openModal("info", head("Атлас исследований", "о проекте") +
+      '<p class="plain" style="margin-top:16px">Атлас научных работ сотрудников кафедры компьютерного права и информационной безопасности Высшей школы государственного аудита МГУ имени М.В. Ломоносова. В центре системы кафедра. Девять орбит соответствуют масштабу объекта исследования: чем крупнее объект, тем дальше орбита, от единицы данных до космоса. Каждое тело на орбите означает одну работу; крупные тела с кольцом означают диссертации.</p>' +
+      '<p class="plain">Карту можно перетаскивать и приближать колесом мыши или двумя пальцами. Нажатие на тело или на название орбиты открывает карточку. Кнопки внизу слева проигрывают историю: работы появляются на орбитах в год публикации.</p>' +
+      "<h3>Орбиты</h3><div>" + orbits.map(function (o) { return orbitPill(o); }).join("") + "</div>" +
+      '<p class="plain" style="color:var(--dim)">Орбита присвоена работе автоматически по ключевым словам заглавия; работы без признаков другого уровня отнесены к орбите «Государство». Это навигационная классификация, а не оценка работы.</p>' +
+      "<h3>Источники</h3>" +
+      '<p class="plain">Списки работ выгружены из системы ИСТИНА МГУ по профилям сотрудников ' + esc(D.checkedAt) + '. Библиографические записи построены по ГОСТ Р 7.0.100-2018 из экспорта BibTeX каждой записи ИСТИНА. Ссылки DOI даны там, где они указаны в ИСТИНА или найдены по совпадению заглавия, года и издания в Crossref: ' + withDoi + " из " + WORKS.length + ".</p>" +
+      '<ol class="src"><li>Кафедра компьютерного права и информационной безопасности. — Текст : электронный // Высшая школа государственного аудита МГУ имени М.В. Ломоносова : официальный сайт. — URL: <a href="' + esc(D.department.url) + '" target="_blank" rel="noopener">' + esc(D.department.url) + "</a> (дата обращения: " + esc(D.checkedAt) + ").</li>" + srcs + "</ol>" +
+      '<p class="plain" style="color:var(--dim)">' + esc(D.photoCredit || "") + "</p>");
+  }
+  $("#btnSearch").addEventListener("click", function () { modalKind === "search" ? closeModal() : openSearch(); });
+  $("#btnFilter").addEventListener("click", function () { modalKind === "filter" ? closeModal() : openFilter(); });
+  $("#btnInfo").addEventListener("click", function () { modalKind === "info" ? closeModal() : openInfo(); });
+  $("#btnFit").addEventListener("click", fitAll);
+
+  // время
+  $("#btnPlay").addEventListener("click", function () { setPlaying(!playing); });
+  $("#btnRew").addEventListener("click", function () {
+    yearNow = MIN_Y; histRun = true; setPlaying(true); timeLabel(); updateCount();
+  });
+  $("#btnFwd").addEventListener("click", function () {
+    if (!histRun) { yearNow = Math.max(MIN_Y, yearNow < MAX_Y ? yearNow : MIN_Y); histRun = true; }
+    speedIdx = (speedIdx + 1) % SPEEDS.length; setPlaying(true); timeLabel();
+  });
+
+  /* ================= УКАЗАТЕЛЬ ================= */
+  var tip = $("#tip");
+  function pick(sx, sy) {
+    // сначала метки орбит и солнце
+    var sp = P(0, 0);
+    if (Math.hypot(sp[0] - sx, sp[1] - sy) < 16) return { kind: "sun" };
+    for (var i = 0; i < labelHits().length; i++) { var h = labelHits()[i]; if (sx >= h[0] && sx <= h[0] + h[2] && sy >= h[1] && sy <= h[1] + h[3]) return h[4]; }
+    var best = null, bd = 11;
+    bodies.forEach(function (b) {
+      if (b.sx == null || b.sx === -999 || !visibleNow(b.w) || !passes(b.w)) return;
+      var d = Math.hypot(b.sx - sx, b.sy - sy);
+      if (d < bd) { bd = d; best = b; }
+    });
+    if (best) return { kind: "work", b: best };
+    var eb = null, ed = 14;
+    orbits.forEach(function (o) {
+      if (o.sx != null) { var d = Math.hypot(o.sx - sx, o.sy - sy); if (d < ed) { ed = d; eb = o; } }
+      else if (o.ex != null) { var d2 = Math.hypot(o.ex - sx, o.ey - sy); if (d2 < ed) { ed = d2; eb = o; } }
+    });
+    return eb ? { kind: "orbit", o: eb } : null;
+  }
+  function labelHits() {
+    // прямоугольники меток орбит (приблизительно)
+    var res = [];
+    ctx.font = "500 12px Jura, 'Segoe UI', Arial, sans-serif";
+    orbits.forEach(function (o) {
+      if (o.sx == null) return;
+      var w = ctx.measureText(o.L.name).width + 26;
+      res.push([o.sx, o.sy - 24, w, 26, { kind: "orbit", o: o }]);
+    });
+    return res;
+  }
+
+  var ptrs = {}, drag = null, pinch = null, moved = false;
+  canvas.addEventListener("pointerdown", function (e) {
+    canvas.setPointerCapture(e.pointerId);
+    ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    moved = false; camTarget = null;
+    var ids = Object.keys(ptrs);
+    if (ids.length === 1) drag = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y };
+    if (ids.length === 2) { var a = ptrs[ids[0]], b = ptrs[ids[1]]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), s: cam.s }; }
+  });
   canvas.addEventListener("pointermove", function (e) {
-    var r = canvas.getBoundingClientRect();
     if (ptrs[e.pointerId]) {
       ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
       var ids = Object.keys(ptrs);
       if (ids.length === 2 && pinch) {
         var a = ptrs[ids[0]], b = ptrs[ids[1]];
-        var mx = (a.x + b.x) / 2 - r.left, my = (a.y + b.y) / 2 - r.top;
-        var want = clampS(pinch.s * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d);
-        zoomAt(mx, my, want / cam.s); moved = true;
-      } else if (ids.length === 1 && dragStart) {
-        var dx = e.clientX - dragStart.x, dy = e.clientY - dragStart.y;
-        if (Math.abs(dx) + Math.abs(dy) > 4) moved = true;
-        cam.x = dragStart.cx - dx / cam.s; cam.y = dragStart.cy - dy / cam.s;
+        zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, clampS(pinch.s * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d) / cam.s);
+        moved = true;
+      } else if (ids.length === 1 && drag) {
+        var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+        if (Math.abs(dx) + Math.abs(dy) > 4) { moved = true; follow = null; }
+        if (moved) { cam.x = drag.cx - dx / cam.s; cam.y = drag.cy - dy / cam.s; }
       }
       tip.hidden = true;
       return;
     }
-    // наведение
-    var h = pick(e.clientX - r.left, e.clientY - r.top);
-    if (h !== hover) { hover = h; canvas.style.cursor = h ? "pointer" : "grab"; }
-    if (h) showTip(h, e.clientX - r.left, e.clientY - r.top); else tip.hidden = true;
+    var h = pick(e.clientX, e.clientY);
+    hover = h;
+    canvas.style.cursor = h ? "pointer" : "grab";
+    if (h && h.kind === "work") {
+      var w = h.b.w;
+      tip.innerHTML = "<b>" + esc(TYPES[w.type].name) + (w.year ? " · " + w.year : "") + "</b>" + esc(w.title) + "<span>" + esc(shortAuthors(w)) + " · " + esc(h.b.o.L.name) + "</span>";
+      tip.hidden = false;
+      var tw = tip.offsetWidth, th = tip.offsetHeight;
+      tip.style.left = Math.min(W - tw - 8, e.clientX + 14) + "px";
+      tip.style.top = Math.max(8, Math.min(H - th - 8, e.clientY + 14)) + "px";
+    } else if (h && h.kind === "orbit") {
+      tip.innerHTML = "<b>Орбита " + lnum(h.o.L.level) + "</b>" + esc(h.o.L.name) + "<span>" + works(h.o.works.length) + " · " + esc(h.o.L.hint) + "</span>";
+      tip.hidden = false;
+      tip.style.left = Math.min(W - tip.offsetWidth - 8, e.clientX + 14) + "px"; tip.style.top = (e.clientY + 14) + "px";
+    } else tip.hidden = true;
   });
   function endPtr(e) {
-    var r = canvas.getBoundingClientRect();
-    var wasDrag = moved;
+    var was = moved;
     delete ptrs[e.pointerId];
     if (Object.keys(ptrs).length < 2) pinch = null;
     if (!Object.keys(ptrs).length) {
-      dragStart = null;
-      if (!wasDrag && e.type === "pointerup") {
-        var h = pick(e.clientX - r.left, e.clientY - r.top);
-        if (h) { selected = h; openPanel(h.w); }
-        else {
-          var w = toWorld(e.clientX - r.left, e.clientY - r.top);
-          var sys = systems.filter(function (s) { return Math.hypot(s.x - w[0], s.y - w[1]) < s.R; })[0];
-          if (sys && cam.s < systemView(sys).s * 0.7) flyTo(systemView(sys));
-        }
+      drag = null;
+      if (!was && e.type === "pointerup") {
+        var h = pick(e.clientX, e.clientY);
+        if (!h) { if (sel) deselect(); }
+        else if (h.kind === "work") selectWork(h.b.w);
+        else if (h.kind === "orbit") selectOrbit(h.o);
+        else if (h.kind === "sun") selectSun();
       }
-    } else {
-      var ids = Object.keys(ptrs); var p = ptrs[ids[0]];
-      dragStart = { x: p.x, y: p.y, cx: cam.x, cy: cam.y };
-    }
+    } else { var ids = Object.keys(ptrs), p = ptrs[ids[0]]; drag = { x: p.x, y: p.y, cx: cam.x, cy: cam.y }; }
   }
   canvas.addEventListener("pointerup", endPtr);
   canvas.addEventListener("pointercancel", endPtr);
+  canvas.addEventListener("pointerleave", function () { hover = null; tip.hidden = true; });
 
-  function pick(sx, sy) {
-    var best = null, bd = 14;
-    allStars.forEach(function (st) {
-      if (filtering() && !isActive(st.w)) return;
-      var p = toScreen(st.x, st.y);
-      var d = Math.hypot(p[0] - sx, p[1] - sy);
-      if (d < bd) { bd = d; best = st; }
-    });
-    return best;
+  function zoomAt(sx, sy, f) {
+    var before = Pinv(sx, sy);
+    cam.s = clampS(cam.s * f); camTarget = null;
+    var after = Pinv(sx, sy);
+    if (!follow) { cam.x += before[0] - after[0]; cam.y += before[1] - after[1]; }
   }
-  function showTip(st, x, y) {
-    var w = st.w;
-    tip.innerHTML = '<span class="t-type">' + esc(TYPES[w.type].name) + (w.year ? " · " + w.year : "") + "</span>" +
-      '<span class="t-title">' + esc(w.title) + "</span>" + '<span class="t-au">' + esc(shortAuthors(w)) + "</span>";
-    tip.hidden = false;
-    var tw = tip.offsetWidth, th = tip.offsetHeight;
-    tip.style.left = Math.min(W - tw - 10, x + 16) + "px";
-    tip.style.top = Math.max(10, Math.min(H - th - 10, y - th / 2)) + "px";
-  }
-
-  $("#zIn").addEventListener("click", function () { flyTo({ x: cam.x, y: cam.y, s: clampS(cam.s * 1.8) }); });
-  $("#zOut").addEventListener("click", function () { flyTo({ x: cam.x, y: cam.y, s: clampS(cam.s / 1.8) }); });
-  $("#zAll").addEventListener("click", function () { flyTo(overview()); });
-  canvas.addEventListener("keydown", function (e) {
-    var k = e.key, step = 80 / cam.s;
-    if (k === "+" || k === "=") flyTo({ x: cam.x, y: cam.y, s: clampS(cam.s * 1.6) });
-    else if (k === "-") flyTo({ x: cam.x, y: cam.y, s: clampS(cam.s / 1.6) });
-    else if (k === "ArrowLeft") cam.x -= step; else if (k === "ArrowRight") cam.x += step;
-    else if (k === "ArrowUp") cam.y -= step; else if (k === "ArrowDown") cam.y += step;
-    else if (k === "0") flyTo(overview());
-    else return;
+  canvas.addEventListener("wheel", function (e) {
     e.preventDefault();
+    var d = e.deltaY * (e.deltaMode === 1 ? 16 : 1);
+    zoomAt(e.clientX, e.clientY, Math.exp(-d * 0.0015));
+  }, { passive: false });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target.tagName === "INPUT") { if (e.key === "Escape") closeModal(); return; }
+    var step = 60 / cam.s;
+    if (e.key === "Escape") { if (!modal.hidden) closeModal(); else deselect(); }
+    else if (e.key === "/" ) { e.preventDefault(); openSearch(); }
+    else if (e.key === "+" || e.key === "=") zoomAt(viewCenter()[0], viewCenter()[1], 1.4);
+    else if (e.key === "-") zoomAt(viewCenter()[0], viewCenter()[1], 1 / 1.4);
+    else if (e.key === "0") fitAll();
+    else if (e.key === " ") { e.preventDefault(); setPlaying(!playing); }
+    else if (e.key === "ArrowLeft") { follow = null; cam.x -= step; }
+    else if (e.key === "ArrowRight") { follow = null; cam.x += step; }
+    else if (e.key === "ArrowUp") { follow = null; cam.y -= step; }
+    else if (e.key === "ArrowDown") { follow = null; cam.y += step; }
   });
 
-  // список созвездий
-  var constEl = $("#const");
-  constEl.innerHTML = '<button type="button" data-l="all"><span class="n">∗</span>Вся вселенная</button>' +
-    systems.map(function (s) {
-      return '<button type="button" data-l="' + s.L.level + '"><span class="n">' + (s.L.level - MIN_L + 1) + "</span>" + esc(s.L.name) + " <i>" + s.works.length + "</i></button>";
-    }).join("");
-  constEl.addEventListener("click", function (e) {
-    var b = e.target.closest("button"); if (!b) return;
-    hideHint();
-    if (b.dataset.l === "all") flyTo(overview());
-    else flyTo(systemView(systems.filter(function (s) { return String(s.L.level) === b.dataset.l; })[0]));
-  });
-
-  /* ---------- подсказка ---------- */
-  var hintTimer = null;
-  function showHint() {
-    $("#hint").classList.remove("is-gone");
-    clearTimeout(hintTimer); hintTimer = setTimeout(hideHint, 2200);
-  }
-  function hideHint() { $("#hint").classList.add("is-gone"); }
-  setTimeout(hideHint, 6500);
-
-  /* ---------- фото Земли ---------- */
-  function setPhoto(level) {
-    var el = $("#photoCredit"); if (!el) return;
-    el.textContent = level === null ? "Перетаскивайте карту, приближайте колесом или жестом, нажмите на созвездие, чтобы подлететь к нему." :
-      "Созвездие «" + levelInfo(level).name + "». Нажмите на звезду, чтобы открыть карточку работы.";
-  }
-  (function gallery() {
-    var g = $("#gallery"); if (!g || !D.PHOTOS) return;
-    g.innerHTML = D.PHOTOS.map(function (ph) {
-      return '<figure><img src="' + esc(ph.src) + '" alt="' + esc(ph.caption) + '" loading="lazy"><figcaption>' + esc(ph.caption) + "</figcaption></figure>";
-    }).join("");
-    $("#galleryCredit").textContent = D.photoCredit || "";
-  })();
-
-  /* ---------- фильтры и поиск ---------- */
-  D.PEOPLE.forEach(function (p) {
-    var n = WORKS.filter(function (w) { return w.authors.indexOf(p.id) >= 0; }).length;
-    var b = document.createElement("button");
-    b.type = "button"; b.className = "chip";
-    b.textContent = p.short + " · " + n;
-    b.title = p.name + ", " + p.role;
-    b.addEventListener("click", function () {
-      if (activePeople[p.id]) delete activePeople[p.id]; else activePeople[p.id] = true;
-      b.classList.toggle("is-on", !!activePeople[p.id]);
-      renderList();
-    });
-    $("#people").appendChild(b);
-  });
-  var searchTimer = null;
-  $("#search").addEventListener("input", function () {
-    var v = this.value;
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(function () { query = norm(v.trim()); renderList(); }, 180);
-  });
-  [["article", "Статья в журнале"], ["chapter", "В сборнике"], ["book", "Книга"], ["thesis", "Диссертация"], ["talk", "Тезисы, доклад"]].forEach(function (t) {
-    var s = document.createElement("span");
-    s.innerHTML = '<b class="lg-' + t[0] + '"></b>' + t[1];
-    $("#legend").appendChild(s);
-  });
-
-  /* ---------- карточка ---------- */
-  var panel = $("#panel");
-  function openPanel(w) {
-    if (!w) return;
-    selected = starOf[w.id] || null;
-    var L = levelInfo(w.level), src = D.SOURCES[w.source] || D.SOURCES.istina;
-    var names = w.authors.map(function (id) {
-      var p = people[id];
-      return p.profile ? '<a href="' + esc(p.profile) + '" target="_blank" rel="noopener">' + esc(p.name) + "</a>" : esc(p.name);
-    }).join(", ");
-    var links = "";
-    if (w.istina) {
-      links += '<li><a href="' + esc(w.istina) + '" target="_blank" rel="noopener">' +
-        (w.istinaKind === "record" ? "Запись о работе в ИСТИНА МГУ" : "Профиль автора в ИСТИНА МГУ") + "</a></li>";
-    }
-    (w.links || []).forEach(function (l) {
-      var lbl = l.kind === "doi" ? l.label + " (издатель)" :
-        l.kind === "doi-crossref" ? l.label + " (найден по Crossref)" :
-        l.kind === "index" ? l.label + " (индекс цитирования)" : l.label;
-      links += '<li><a href="' + esc(l.url) + '" target="_blank" rel="noopener">' + esc(lbl) + "</a></li>";
-    });
-    var html = '<span class="tag">' + esc(TYPES[w.type].name) + "</span>" +
-      (w.year ? '<span class="tag">' + w.year + "</span>" : "") +
-      "<h2>" + esc(w.title) + "</h2>" +
-      '<p class="meta">' + names + (w.coauthors ? "; соавторы: " + esc(w.coauthors) : "") + "</p>" +
-      (w.venue ? '<p class="meta">' + esc(w.venue) + "</p>" : "") +
-      '<div class="box"><h3>Библиографическая запись</h3><div>' + esc(w.gost) +
-      '</div><button class="copy" id="copyGost" type="button">Скопировать</button></div>' +
-      (links ? '<div class="box"><h3>Источники</h3><ul class="links">' + links + "</ul></div>" : "") +
-      (w.source === "istina" ? "" :
-        '<div class="box"><h3>Источник реквизитов</h3>' +
-        '<a href="' + esc(src.url) + '" target="_blank" rel="noopener">' + esc(src.title) + "</a><br>" +
-        (src.primary ? "Официальный документ" : "Вторичный источник") + ", проверено " + esc(D.checkedAt) + "</div>") +
-      (w.verify ? '<div class="box warn"><h3>Требует сверки</h3>' + esc(w.verify) + "</div>" : "") +
-      '<div class="box"><h3>Созвездие</h3>' + (w.level - MIN_L + 1) + " «" + esc(L.name) + "»: " + esc(L.hint) +
-      '. <a href="#" id="toLevel">Показать на карте</a></div>';
-    $("#panelBody").innerHTML = html;
-    panel.scrollTop = 0;
-    $("#copyGost").addEventListener("click", function () {
-      var btn = this;
-      try {
-        navigator.clipboard.writeText(w.gost).then(
-          function () { btn.textContent = "Скопировано"; },
-          function () { btn.textContent = "Выделите текст вручную"; });
-      } catch (e) { btn.textContent = "Выделите текст вручную"; }
-    });
-    $("#toLevel").addEventListener("click", function (e) {
-      e.preventDefault(); closePanel();
-      mapwrap.scrollIntoView({ behavior: "smooth" });
-      var st = starOf[w.id];
-      if (st) { selected = st; flyTo({ x: st.x, y: st.y, s: 3.2 }); }
-    });
-    panel.classList.add("is-open"); panel.setAttribute("aria-hidden", "false");
-    try { history.replaceState(null, "", "#" + w.id); } catch (e) {}
-  }
-  function closePanel() {
-    panel.classList.remove("is-open"); panel.setAttribute("aria-hidden", "true");
-    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
-  }
-  $("#panelClose").addEventListener("click", closePanel);
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closePanel(); });
-
-  /* ---------- список ---------- */
-  var expanded = {}, PAGE = 20;
-  function renderList() {
-    var html = "", total = 0;
-    LEVELS.slice().reverse().forEach(function (L) {
-      var ws = WORKS.filter(function (w) { return w.level === L.level && isActive(w); })
-        .sort(function (a, b) { return (b.year || 0) - (a.year || 0); });
-      if (!ws.length) return;
-      total += ws.length;
-      html += '<h4 id="lvl-' + (L.level - MIN_L + 1) + '"><span class="n">' + (L.level - MIN_L + 1) + "</span>" + esc(L.name) +
-        " <small>" + esc(L.hint) + ", " + ws.length + "</small></h4>";
-      var shown = expanded[L.level] ? ws : ws.slice(0, PAGE);
-      shown.forEach(function (w) {
-        var doi = (w.links || []).some(function (l) { return l.kind.indexOf("doi") === 0; });
-        html += '<div class="row" data-id="' + esc(w.id) + '"><div class="ry">' + esc(w.year || "") + '</div><div><div class="rt">' +
-          esc(w.title) + '</div><div class="ra">' + esc(authorsLine(w)) + ". " + esc(TYPES[w.type].name) +
-          (w.venue ? ". " + esc(w.venue) : "") + (doi ? ' <span class="doi">DOI</span>' : "") + "</div></div></div>";
-      });
-      if (ws.length > shown.length) html += '<button class="more" type="button" data-l="' + L.level + '">Показать ещё ' + (ws.length - shown.length) + "</button>";
-    });
-    $("#list").innerHTML = '<p class="list-total">Найдено работ: ' + total + "</p>" + (html || "<p>Ничего не найдено.</p>");
-    $("#found").textContent = filtering() ? "Найдено: " + total : "";
-  }
-  $("#list").addEventListener("click", function (e) {
-    var m = e.target.closest(".more");
-    if (m) { expanded[+m.dataset.l] = true; renderList(); return; }
-    var r = e.target.closest(".row");
-    if (r) openPanel(byId[r.dataset.id]);
-  });
-
-  /* ---------- о карте и источники ---------- */
-  function renderAbout() {
-    var withDoi = WORKS.filter(function (w) { return (w.links || []).some(function (l) { return l.kind.indexOf("doi") === 0; }); }).length;
-    $("#aboutBody").innerHTML =
-      "<h2>О карте</h2>" +
-      '<p class="lead">Научные работы сотрудников кафедры собраны во вселенную: каждая работа здесь звезда, каждый уровень масштаба созвездие.</p>' +
-      "<p>В центре кафедра. От неё по спиральному рукаву расходятся девять созвездий, от самых малых объектов исследования к самым крупным: от единицы данных и алгоритма через человека, организацию, отрасль и государство к международному уровню, глобальной среде и космосу. Чем крупнее объект, тем дальше и больше созвездие. Цвет звезды обозначает вид работы, размер: её вес (диссертации и книги ярче статей).</p>" +
-      "<p>Карту можно перетаскивать и приближать колесом мыши или двумя пальцами. При сильном приближении у звёзд появляются заглавия; нажатие открывает библиографическую запись и источники. Поиск и выбор авторов подсвечивают нужные звёзды.</p>" +
-      '<ol class="levels">' + LEVELS.map(function (L) {
-        return '<li><span class="n">' + (L.level - MIN_L + 1) + "</span><b>" + esc(L.name) + "</b><span>" + esc(L.hint) + "</span></li>";
-      }).join("") + "</ol>" +
-      "<p>Созвездие присвоено работе автоматически по ключевым словам заглавия; работы без признаков другого уровня отнесены к созвездию «Государство». Это навигационная классификация, а не оценка работы.</p>";
-    $("#stats").innerHTML = "Звёзд (работ): " + WORKS.length + "<br>Со ссылкой DOI: " + withDoi;
-    $("#checked").textContent = D.checkedAt;
-    var srcs = Object.keys(D.SOURCES).map(function (k) {
-      var s2 = D.SOURCES[k];
-      return "<li>" + esc(s2.title) + ". — Текст : электронный. — URL: <a href=\"" + esc(s2.url) + "\" target=\"_blank\" rel=\"noopener\">" +
-        esc(s2.url) + "</a> (дата обращения: " + esc(D.checkedAt) + ")." + (s2.primary ? "" : " Вторичный источник.") + "</li>";
-    }).join("");
-    var profiles = D.PEOPLE.filter(function (p) { return p.profile; }).map(function (p) {
-      return '<li><a href="' + esc(p.profile) + '" target="_blank" rel="noopener">' + esc(p.name) + "</a></li>";
-    }).join("");
-    $("#sourcesBody").innerHTML =
-      "<h2>Источники</h2>" +
-      "<p>Списки работ выгружены из системы ИСТИНА МГУ по профилям сотрудников:</p><ul>" + profiles + "</ul>" +
-      "<p>Библиографические записи построены по ГОСТ Р 7.0.100-2018 из экспорта BibTeX каждой записи ИСТИНА; заглавия и выходные данные приведены так, как их внесли авторы. У каждой работы есть ссылка на её запись в ИСТИНА. Ссылки на издателя (DOI), Scopus, Web of Science и eLibrary даны там, где они указаны в ИСТИНА или найдены по совпадению заглавия, года и издания в Crossref.</p>" +
-      '<ol class="src"><li>Кафедра компьютерного права и информационной безопасности. — Текст : электронный // Высшая школа государственного аудита МГУ имени М.В. Ломоносова : официальный сайт. — URL: <a href="' + esc(D.department.url) + '" target="_blank" rel="noopener">' + esc(D.department.url) + "</a> (дата обращения: " + esc(D.checkedAt) + ").</li>" + srcs + "</ol>";
-  }
-
-  /* ---------- старт ---------- */
-  renderList(); renderAbout();
+  /* ================= СТАРТ ================= */
   window.addEventListener("resize", function () { resize(); });
   resize();
-  var o = overview(); cam.x = o.x; cam.y = o.y; cam.s = o.s;
-  var hashW = byId[location.hash.slice(1)];
-  if (hashW) { var st = starOf[hashW.id]; if (st) { cam.x = st.x; cam.y = st.y; cam.s = 3.2; selected = st; } openPanel(hashW); }
-  animating = true; requestAnimationFrame(step);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+  cam.s = fitScale();
+  timeLabel(); updateCount(); setPlaying(true);
+  var hsh = decodeURIComponent(location.hash.slice(1));
+  if (hsh) {
+    if (byId[hsh]) { var b0 = bodyOf[hsh]; var q0 = orbitPoint(b0.o, b0.th, b0.k); cam.x = q0[0]; cam.y = q0[1]; cam.s = 3.2; selectWork(byId[hsh], false); }
+    else if (/^orbit-\d$/.test(hsh)) { var o0 = orbits[+hsh.slice(6) - 1]; if (o0) selectOrbit(o0); }
+    else if (hsh === "kafedra") selectSun();
+  }
+  window.addEventListener("hashchange", function () {
+    var h = decodeURIComponent(location.hash.slice(1));
+    if (byId[h]) selectWork(byId[h]);
+    else if (/^orbit-\d$/.test(h) && orbits[+h.slice(6) - 1]) selectOrbit(orbits[+h.slice(6) - 1]);
+    else if (h === "kafedra") selectSun();
+  });
+  requestAnimationFrame(function (n) { last = n; frame(n); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () {});
 })();
