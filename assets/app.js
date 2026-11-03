@@ -5,8 +5,9 @@
   var D = window.KPIB;
   var LEVELS = D.LEVELS;
   var MIN_L = LEVELS[0].level;
-  var COLORS = { "-3": "#a3acb8", "-2": "#e0b34a", "-1": "#6f95ec", "0": "#e8743b", "1": "#cfa57a",
-                 "2": "#e9d391", "3": "#7fcadb", "4": "#5f84e0", "5": "#b78ce0" };
+  // цвета орбит: от холодного серого (данные) через тёплые к фиолетовому (дальний космос)
+  var PALETTE = ["#a3acb8", "#c9ced6", "#e0b34a", "#e6c46a", "#6f95ec", "#8fb3f2", "#e8743b", "#f0955e",
+                 "#cfa57a", "#e9d391", "#d98e8e", "#7fcadb", "#5f84e0", "#c7b8ff", "#6fd6c4", "#b78ce0", "#9d7bd8"];
   var TYPES = {
     article:     { name: "Статья в журнале",    r: 2.1 },
     chapter:     { name: "Статья в сборнике",   r: 1.7 },
@@ -77,11 +78,11 @@
   var orbits = LEVELS.map(function (L, i) {
     var r = rng(500 + i * 31);
     return {
-      L: L, i: i, color: COLORS[String(L.level)],
-      R: 80 + 74 * i,
+      L: L, i: i, color: PALETTE[i % PALETTE.length],
+      R: 70 + 52 * i,
       e: 0.02 + r() * 0.06,
       w: (r() - 0.5) * 1.2,
-      speed: 0.05 / Math.pow(1 + i * 0.92, 1.5),
+      speed: 0.05 / Math.pow(1 + i * 0.75, 1.5),
       p0: r() * Math.PI * 2,
       works: WORKS.filter(function (w) { return w.level === L.level; }).sort(function (a, b) { return (b.year || 0) - (a.year || 0); })
     };
@@ -265,7 +266,8 @@
       var on = p[0] > 4 && p[0] < W - panelW() - 4 && p[1] > 4 && p[1] < H - 4;
       if (!on) { edge.push([o, p]); return; }
       ctx.fillStyle = o.color; ctx.beginPath(); ctx.arc(p[0], p[1], 3.6, 0, Math.PI * 2); ctx.fill();
-      tag(o.L.name, p[0], p[1], o.color, { force: true, sel: sel && sel.kind === "orbit" && sel.o === o });
+      var isSelO = sel && sel.kind === "orbit" && sel.o === o;
+      tag(o.L.name, p[0], p[1], o.color, { force: isSelO || W > 760, size: W > 760 ? 12 : 11, sel: isSelO });
       o.sx = p[0]; o.sy = p[1];
     });
     edge.forEach(function (e) { edgeMark(e[0], e[1]); });
@@ -362,7 +364,7 @@
 
   function updateCount() {
     var n = WORKS.filter(function (w) { return visibleNow(w) && passes(w); }).length;
-    $("#count").textContent = works(n) + " · 9 орбит" + (focusTopic ? " · тема: " + cut(topicOf[focusTopic].name, 28) : " · " + TOPICS.length + " тем");
+    $("#count").textContent = works(n) + " · " + orbits.length + " " + plural(orbits.length, "орбита", "орбиты", "орбит") + (focusTopic ? " · тема: " + cut(topicOf[focusTopic].name, 28) : " · " + TOPICS.length + " тем");
   }
 
   /* ================= ВЫБОР ================= */
@@ -676,7 +678,7 @@
     }).join("");
     var withDoi = WORKS.filter(function (w) { return (w.links || []).some(function (l) { return l.kind.indexOf("doi") === 0; }); }).length;
     openModal("info", head("Атлас исследований", "о проекте") +
-      '<p class="plain" style="margin-top:16px">Атлас научных работ сотрудников кафедры компьютерного права и информационной безопасности Высшей школы государственного аудита МГУ имени М.В. Ломоносова. В центре системы кафедра. Девять орбит соответствуют масштабу объекта исследования: чем крупнее объект, тем дальше орбита, от единицы данных до космоса. Каждое тело на орбите означает одну работу; крупные тела с кольцом означают диссертации.</p>' +
+      '<p class="plain" style="margin-top:16px">Атлас научных работ сотрудников кафедры компьютерного права и информационной безопасности Высшей школы государственного аудита МГУ имени М.В. Ломоносова. В центре системы кафедра. ' + orbits.length + ' орбит соответствуют масштабу объекта исследования: чем крупнее объект, тем дальше орбита, от единицы данных до дальнего космоса. Каждое тело на орбите означает одну работу; крупные тела с кольцом означают диссертации.</p>' +
       '<p class="plain">Карту можно перетаскивать и приближать колесом мыши или двумя пальцами. Нажатие на тело или на название орбиты открывает карточку. Кнопки внизу слева проигрывают историю: работы появляются на орбитах в год публикации.</p>' +
       "<h3>Орбиты</h3><div>" + orbits.map(function (o) { return orbitPill(o); }).join("") + "</div>" +
       "<h3>Темы</h3><div>" + TOPICS.map(function (t) { return topicPill(t.id); }).join("") + "</div>" +
@@ -829,14 +831,14 @@
   var hsh = decodeURIComponent(location.hash.slice(1));
   if (hsh) {
     if (byId[hsh]) { var b0 = bodyOf[hsh]; var q0 = orbitPoint(b0.o, b0.th, b0.k); cam.x = q0[0]; cam.y = q0[1]; cam.s = 3.2; selectWork(byId[hsh], false); }
-    else if (/^orbit-\d$/.test(hsh)) { var o0 = orbits[+hsh.slice(6) - 1]; if (o0) selectOrbit(o0); }
+    else if (/^orbit-\d+$/.test(hsh)) { var o0 = orbits[+hsh.slice(6) - 1]; if (o0) selectOrbit(o0); }
     else if (hsh === "kafedra") selectSun();
     else if (/^topic-/.test(hsh) && topicOf[hsh.slice(6)]) selectTopic(hsh.slice(6));
   }
   window.addEventListener("hashchange", function () {
     var h = decodeURIComponent(location.hash.slice(1));
     if (byId[h]) selectWork(byId[h]);
-    else if (/^orbit-\d$/.test(h) && orbits[+h.slice(6) - 1]) selectOrbit(orbits[+h.slice(6) - 1]);
+    else if (/^orbit-\d+$/.test(h) && orbits[+h.slice(6) - 1]) selectOrbit(orbits[+h.slice(6) - 1]);
     else if (h === "kafedra") selectSun();
     else if (/^topic-/.test(h) && topicOf[h.slice(6)]) selectTopic(h.slice(6));
   });
