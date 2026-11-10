@@ -79,10 +79,10 @@
     var r = rng(500 + i * 31);
     return {
       L: L, i: i, color: PALETTE[i % PALETTE.length],
-      R: 70 + 52 * i,
+      R: 120 + 38 * i,
       e: 0.02 + r() * 0.06,
       w: (r() - 0.5) * 1.2,
-      speed: 0.05 / Math.pow(1 + i * 0.75, 1.5),
+      speed: 0.05 / Math.pow(1 + i * 0.55, 1.5),
       p0: r() * Math.PI * 2,
       works: WORKS.filter(function (w) { return w.level === L.level; }).sort(function (a, b) { return (b.year || 0) - (a.year || 0); })
     };
@@ -498,10 +498,7 @@
       "<dt>соседние орбиты</dt><dd>" + orbits.filter(function (x) { return Math.abs(x.i - o.i) === 1; }).map(orbitPill).join("") + "</dd>" +
       "</dl>" +
       "<h3>Работы по годам</h3>" + histogram(list) +
-      (photos.length ? "<h3>Галерея</h3><div class=\"gallery\">" + photos.map(function (ph) {
-        return '<figure><a href="' + esc(ph.src) + '" target="_blank" rel="noopener"><img src="' + esc(ph.src) + '" alt="' + esc(ph.caption) + '" loading="lazy"></a><figcaption>' + esc(ph.caption) +
-          (ph.work ? ' <a href="#' + esc(ph.work) + '">рис. ' + ph.fig + "</a>" : "") + "</figcaption></figure>";
-      }).join("") + '</div><p class="plain" style="color:var(--dim);margin-top:8px">' + esc(D.photoCredit || "") + "</p>" : "") +
+      gallery(photos) +
       "<h3>Работы</h3><div class=\"list\">" + shown.map(workRow).join("") + "</div>" +
       (shown.length < list.length ? '<button class="more" type="button" data-allorbit="' + o.L.level + '">Показать все ' + list.length + "</button>" : "");
   }
@@ -544,6 +541,14 @@
     updateCount();
     setHash("topic-" + id);
   }
+  function gallery(photos) {
+    if (!photos.length) return "";
+    return "<h3>Фотографии с орбиты</h3><div class=\"gallery\">" + photos.map(function (ph) {
+      return '<figure><a href="' + esc(ph.src) + '" target="_blank" rel="noopener"><img src="' + esc(ph.src) + '" alt="' + esc(ph.caption) + '" loading="lazy"></a><figcaption>' + esc(ph.caption) +
+        (ph.work ? ' <a href="#' + esc(ph.work) + '">рис. ' + ph.fig + "</a>" : "") + "</figcaption></figure>";
+    }).join("") + '</div><p class="plain" style="color:var(--dim);margin-top:8px">' + esc(D.photoCredit || "") + "</p>";
+  }
+
   function renderSun() {
     var staff = D.PEOPLE.map(function (p) {
       var n = WORKS.filter(function (w) { return w.authors.indexOf(p.id) >= 0; }).length;
@@ -555,7 +560,7 @@
       "<h3>Сотрудники</h3><dl class=\"facts\">" + staff + "</dl>" +
       "<h3>Орбиты</h3><div>" + orbits.map(function (o) { return orbitPill(o).replace("</a>", " · " + o.works.length + "</a>"); }).join("") + "</div>" +
       "<h3>Темы</h3><div>" + topicCounts(WORKS).map(function (x) { return topicPill(x[0], x[1]); }).join("") + "</div>" +
-      "<h3>Все работы по годам</h3>" + histogram(WORKS) +
+      "<h3>Все работы по годам</h3>" + histogram(WORKS) + gallery(D.PHOTOS || []) +
       '<p class="plain" style="margin-top:14px"><a class="pill" href="' + esc(D.department.url) + '" target="_blank" rel="noopener">Страница кафедры ↗</a></p>';
   }
 
@@ -679,11 +684,11 @@
     }).join("");
     var withDoi = WORKS.filter(function (w) { return (w.links || []).some(function (l) { return l.kind.indexOf("doi") === 0; }); }).length;
     openModal("info", head("Атлас исследований", "о проекте") +
-      '<p class="plain" style="margin-top:16px">Атлас научных работ сотрудников кафедры компьютерного права и информационной безопасности Высшей школы государственного аудита МГУ имени М.В. Ломоносова. В центре системы кафедра. ' + orbits.length + ' орбит соответствуют масштабу объекта исследования: чем крупнее объект, тем дальше орбита, от единицы данных до дальнего космоса. Каждое тело на орбите означает одну работу; крупные тела с кольцом означают диссертации.</p>' +
+      '<p class="plain" style="margin-top:16px">Атлас научных работ сотрудников кафедры компьютерного права и информационной безопасности Высшей школы государственного аудита МГУ имени М.В. Ломоносова. В центре системы кафедра. ' + orbits.length + ' орбит соответствуют направлениям паспорта научной специальности «Информационное право»: от предмета и системы информационного права до зарубежного опыта; на внешней орбите собраны работы вне паспорта специальности. Каждое тело на орбите означает одну работу; крупные тела с кольцом означают диссертации.</p>' +
       '<p class="plain">Карту можно перетаскивать и приближать колесом мыши или двумя пальцами. Нажатие на тело или на название орбиты открывает карточку. Кнопки внизу слева проигрывают историю: работы появляются на орбитах в год публикации.</p>' +
       "<h3>Орбиты</h3><div>" + orbits.map(function (o) { return orbitPill(o); }).join("") + "</div>" +
       "<h3>Темы</h3><div>" + TOPICS.map(function (t) { return topicPill(t.id); }).join("") + "</div>" +
-      '<p class="plain" style="color:var(--dim)">Темы и орбиты присвоены работам автоматически по ключевым словам заглавия и издания; у работы может быть несколько тем. Орбита присвоена работе автоматически по ключевым словам заглавия; работы без признаков другого уровня отнесены к орбите «Государство». Это навигационная классификация, а не оценка работы.</p>' +
+      '<p class="plain" style="color:var(--dim)">Темы и орбиты присвоены работам автоматически по ключевым словам заглавия и издания; у работы может быть несколько тем. Орбита присвоена работе автоматически по ключевым словам заглавия; работы без признаков какого-либо направления отнесены к внешней орбите «Иные исследования». Это навигационная классификация, а не оценка работы.</p>' +
       "<h3>Источники</h3>" +
       '<p class="plain">Списки работ выгружены из системы ИСТИНА МГУ по профилям сотрудников ' + esc(D.checkedAt) + '. Библиографические записи построены по ГОСТ Р 7.0.100-2018 из экспорта BibTeX каждой записи ИСТИНА. Ссылки DOI даны там, где они указаны в ИСТИНА или найдены по совпадению заглавия, года и издания в Crossref: ' + withDoi + " из " + WORKS.length + ".</p>" +
       '<ol class="src"><li>Кафедра компьютерного права и информационной безопасности. — Текст : электронный // Высшая школа государственного аудита МГУ имени М.В. Ломоносова : официальный сайт. — URL: <a href="' + esc(D.department.url) + '" target="_blank" rel="noopener">' + esc(D.department.url) + "</a> (дата обращения: " + esc(D.checkedAt) + ").</li>" + srcs + "</ol>" +
